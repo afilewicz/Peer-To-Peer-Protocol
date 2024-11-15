@@ -9,7 +9,7 @@ BUFSIZE = 1024
 def generate_message(declared_length):
     message = b''
     for i in range(declared_length - 2):
-      message = ''.join(chr(65 + (i % 26))).encode('utf-8')
+        message = ''.join(chr(65 + (i % 26))).encode('utf-8')
     return message
 
 def main():
@@ -19,14 +19,12 @@ def main():
     else:
         port = int( sys.argv[1] )
 
-    print("Will listen on ", HOST, ":", port)
-
-    sizes = [3, 50, 100, 200, 500, 1000, 2000, 3000, 5000]
+    print("Will listen on ", HOST, ":", port, flush=True)
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.bind((HOST, port))
         i=1
-        for size in sizes:
+        while True:
             data_address = s.recvfrom( BUFSIZE )
             data = data_address[0]
             address = data_address[1]
@@ -53,7 +51,7 @@ def main():
                 response = struct.pack('>H', 0)
 
             s.sendto(response, address)
-            print('sending dgram #', i)
+            print('sending dgram #', i, flush=True)
             i+=1
 
 if __name__ == "__main__":

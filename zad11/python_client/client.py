@@ -10,7 +10,7 @@ PORT = 8000
 def generate_datagram(datagram_size: int) -> bytes:
     length_field = struct.pack("!H", datagram_size)
     data_field = bytes([(65 + i % 26) for i in range(datagram_size - 2)])
-
+    print(data_field)
     return length_field + data_field
 
 
@@ -41,14 +41,14 @@ def main():
             s.sendto(message, (host, port))
 
             data, _ = s.recvfrom(size)
-            data_size = struct.unpack("!H", data[:2])[0]
+            received_message = int.from_bytes(data, byteorder='big')
 
-            if data_size == size:
+            print(f"Received from {host}:{port}: {received_message}")
+
+            if received_message == size:
                 print("Received size matches sent size.")
-            elif data_size > size:
-                print(f"Received size exceeds sent size by {data_size - size} bytes.")
             else:
-                print(f"Sent size exceeds received size by {size - data_size} bytes.")
+                print(f"Sent size doesn't match received size")
 
 
 if __name__ == '__main__':
