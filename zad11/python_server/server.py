@@ -9,7 +9,7 @@ BUFSIZE = 1024
 def generate_message(declared_length):
     message = b''
     for i in range(declared_length - 2):
-        message = ''.join(chr(65 + (i % 26))).encode('utf-8')
+        message += bytes([65 + (i % 26)])
     return message
 
 def main():
@@ -43,7 +43,7 @@ def main():
             message = generate_message(data_length)
 
             if message != data[2:]:
-                print("Message is incorrect")
+                print("Message is incorrect", flush=True)
                 response = struct.pack('>H', 0)
 
             if not data:

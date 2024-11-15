@@ -10,7 +10,6 @@ PORT = 8000
 def generate_datagram(datagram_size: int) -> bytes:
     length_field = struct.pack("!H", datagram_size)
     data_field = bytes([(65 + i % 26) for i in range(datagram_size - 2)])
-    print(data_field)
     return length_field + data_field
 
 
@@ -33,7 +32,7 @@ def main():
 
     print(f"Will send to {host}:{port}")
 
-    sizes = [3, 50, 100, 200, 500, 1000, 2000, 3000, 5000]
+    sizes = [50, 3, 4, 6, 25, 100, 200, 500, 1000, 2000, 3000, 5000]
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         for size in sizes:
@@ -43,7 +42,7 @@ def main():
             data, _ = s.recvfrom(size)
             received_message = int.from_bytes(data, byteorder='big')
 
-            print(f"Received from {host}:{port}: {received_message}")
+            print(f"Received from {host}:{port}: {received_message}, expected: {size}")
 
             if received_message == size:
                 print("Received size matches sent size.")
