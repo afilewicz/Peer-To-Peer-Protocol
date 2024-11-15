@@ -1,0 +1,1 @@
+docker run --name server --network host python-server

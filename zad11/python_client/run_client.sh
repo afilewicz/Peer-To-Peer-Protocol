@@ -1,0 +1,1 @@
+docker run --name client --network host python-client

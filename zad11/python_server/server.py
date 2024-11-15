@@ -1,4 +1,5 @@
 import socket
+import struct
 import sys
 
 HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
@@ -20,11 +21,12 @@ def main():
 
     print("Will listen on ", HOST, ":", port)
 
+    sizes = [3, 50, 100, 200, 500, 1000, 2000, 3000, 5000]
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.bind((HOST, port))
         i=1
-        while True:
+        for size in sizes:
             data_address = s.recvfrom( BUFSIZE )
             data = data_address[0]
             address = data_address[1]
