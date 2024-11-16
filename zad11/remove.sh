@@ -1,2 +1,2 @@
-docker stop z16_lab11_python_server z16_lab11_python_client
-docker rm z16_lab11_python_server z16_lab11_python_client
+docker stop z16_lab11_python_server z16_lab11_python_client z16_lab11_c_server z16_lab11_c_client
+docker rm z16_lab11_python_server z16_lab11_python_client z16_lab11_c_server z16_lab11_c_client
