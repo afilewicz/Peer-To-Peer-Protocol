@@ -35,7 +35,7 @@ def main():
     sizes = [3, 10, 25, 50, 100, 200, 500, 1000, 1010, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030]
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        for size in sizes:
+        for size in range(65500, 66000):
             message = generate_datagram(size)
             s.sendto(message, (host, port))
 

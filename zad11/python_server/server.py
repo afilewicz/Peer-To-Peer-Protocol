@@ -6,7 +6,7 @@ import sys
 HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
 PORT = 8000
 # BUFSIZE = 512
-BUFSIZE = 1024
+BUFSIZE = 66000
 
 def generate_message(declared_length):
     message = b''
