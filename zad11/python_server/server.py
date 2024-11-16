@@ -1,8 +1,10 @@
+import argparse
 import socket
 import struct
 import sys
 
 HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
+PORT = 8000
 # BUFSIZE = 512
 BUFSIZE = 1024
 
@@ -12,17 +14,26 @@ def generate_message(declared_length):
         message += bytes([65 + (i % 26)])
     return message
 
-def main():
-    if len(sys.argv) < 2:
-        print("no port, using 8000")
-        port=8000
-    else:
-        port = int( sys.argv[1] )
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='UDP client')
 
-    print("Will listen on ", HOST, ":", port, flush=True)
+    parser.add_argument('-s', '--host', help=f"The server's hostname or IP address, default: {HOST}", default=HOST)
+    parser.add_argument('-p', '--port', help=f"Port that will be used, default: {PORT}", default=PORT)
+
+    return parser.parse_args()
+
+def main():
+    args = parse_arguments()
+
+    if args.host:
+        host = args.host
+    if args.port:
+        port = int(args.port)
+
+    print("Will listen on ", host, ":", port, flush=True)
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.bind((HOST, port))
+        s.bind((host, port))
         i=1
         while True:
             data_address = s.recvfrom( BUFSIZE )
@@ -31,14 +42,14 @@ def main():
 
             data_length = int.from_bytes(data[:2], byteorder='big')
             response = struct.pack('>H', data_length)
-            print("Expected message length: ", data_length)
+            print("Expected message length: ", data_length, flush=True)
 
             if data_length != len(data):
-                print("Length of datagram is incorrect")
+                print("Length of datagram is incorrect", flush=True)
                 response = struct.pack('>H', 0)
 
-            print( "Message from Client:{}".format(data[2:]) )
-            print( "Client IP Address:{}".format(address) )
+            print( "Message from Client:{}".format(data[2:]) , flush=True)
+            print( "Client IP Address:{}".format(address) , flush=True)
 
             message = generate_message(data_length)
 
@@ -47,7 +58,7 @@ def main():
                 response = struct.pack('>H', 0)
 
             if not data:
-                print("Error in datagram?")
+                print("Error in datagram?", flush=True)
                 response = struct.pack('>H', 0)
 
             s.sendto(response, address)

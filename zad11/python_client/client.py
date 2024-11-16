@@ -30,9 +30,9 @@ def main():
     if args.port:
         port = int(args.port)
 
-    print(f"Will send to {host}:{port}")
+    print(f"Will send to {host}:{port}", flush=True)
 
-    sizes = [50, 3, 4, 6, 25, 100, 200, 500, 1000, 2000, 3000, 5000]
+    sizes = [3, 10, 25, 50, 100, 200, 500, 1000, 1010, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030]
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         for size in sizes:
@@ -42,12 +42,12 @@ def main():
             data, _ = s.recvfrom(size)
             received_message = int.from_bytes(data, byteorder='big')
 
-            print(f"Received from {host}:{port}: {received_message}, expected: {size}")
+            print(f"Received from {host}:{port}: {received_message}, expected: {size}", flush=True)
 
             if received_message == size:
-                print("Received size matches sent size.")
+                print("Received size matches sent size.", flush=True)
             else:
-                print(f"Sent size doesn't match received size")
+                print(f"Sent size doesn't match received size", flush=True)
 
 
 if __name__ == '__main__':
