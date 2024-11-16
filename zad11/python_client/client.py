@@ -26,7 +26,7 @@ def send_and_receive(s: socket.socket, size: int, host: str, port: int):
     message = generate_datagram(size)
     s.sendto(message, (host, port))
 
-    data, _ = s.recvfrom(size)
+    data, _ = s.recvfrom(1024)
     received_message = data.decode('utf-8').strip()
     print(f"For length {size} received from {host}:{port}: {received_message}")
 
