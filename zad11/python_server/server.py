@@ -50,7 +50,6 @@ def main():
                 print("Length of datagram is incorrect", flush=True)
                 response = struct.pack('>H', 0)
 
-            print( "Message from Client:{}".format(data[2:]) , flush=True)
             print( "Client IP Address:{}".format(address) , flush=True)
 
             message = generate_message(data_length)
