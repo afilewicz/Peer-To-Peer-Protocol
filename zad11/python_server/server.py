@@ -43,27 +43,27 @@ def main():
             address = data_address[1]
 
             data_length = int.from_bytes(data[:2], byteorder='big')
-            response = struct.pack('>H', data_length)
             print("Expected message length: ", data_length, flush=True)
 
             if data_length != len(data):
                 print("Length of datagram is incorrect", flush=True)
-                response = struct.pack('>H', 0)
-
-            print( "Message from Client:{}".format(data[2:]) , flush=True)
-            print( "Client IP Address:{}".format(address) , flush=True)
+                response = "Mismatch between response lengths"
+            else:
+                response = "Response length is valid"
 
             message = generate_message(data_length)
 
             if message != data[2:]:
                 print("Message is incorrect", flush=True)
-                response = struct.pack('>H', 0)
+                response = "Message is incorrect"
 
             if not data:
                 print("Error in datagram?", flush=True)
-                response = struct.pack('>H', 0)
+                response = "Error in datagram?"
 
-            s.sendto(response, address)
+            print(response, flush=True)
+            s.sendto(response.encode('utf-8'), address)
+
             print('sending dgram #', i, flush=True)
             i+=1
 

@@ -1,1 +1,1 @@
-docker run --name z16_lab11_c_server --network z16_network z16_lab11_c_server 8000
+docker run --name z16_lab11_c_server --network host z16_lab11_c_server
