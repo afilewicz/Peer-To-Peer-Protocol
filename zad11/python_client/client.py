@@ -22,6 +22,21 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def send_and_receive(s: socket.socket, size: int, host: str, port: int):
+    message = generate_datagram(size)
+    s.sendto(message, (host, port))
+
+    data, _ = s.recvfrom(size)
+    received_message = int.from_bytes(data, byteorder='big')
+
+    print(f"Received from {host}:{port}: {received_message}, expected: {size}", flush=True)
+
+    if received_message == size:
+        print("Received size matches sent size.", flush=True)
+    else:
+        print(f"Sent size doesn't match received size", flush=True)
+
+
 def main():
     args = parse_arguments()
 
@@ -32,22 +47,14 @@ def main():
 
     print(f"Will send to {host}:{port}", flush=True)
 
-    sizes = [3, 10, 25, 50, 100, 200, 500, 1000, 1010, 1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029, 1030]
+    sizes = [3, 10, 25, 50, 100, 200, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000]
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        for size in sizes:
+            send_and_receive(s, size, host, port)
+
         for size in range(65500, 66000):
-            message = generate_datagram(size)
-            s.sendto(message, (host, port))
-
-            data, _ = s.recvfrom(size)
-            received_message = int.from_bytes(data, byteorder='big')
-
-            print(f"Received from {host}:{port}: {received_message}, expected: {size}", flush=True)
-
-            if received_message == size:
-                print("Received size matches sent size.", flush=True)
-            else:
-                print(f"Sent size doesn't match received size", flush=True)
+            send_and_receive(s, size, host, port)
 
 
 if __name__ == '__main__':

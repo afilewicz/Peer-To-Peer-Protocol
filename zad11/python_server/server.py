@@ -1,18 +1,19 @@
 import argparse
 import socket
 import struct
-import sys
 
-HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
+
+HOST = '127.0.0.1'
 PORT = 8000
-# BUFSIZE = 512
 BUFSIZE = 66000
+
 
 def generate_message(declared_length):
     message = b''
     for i in range(declared_length - 2):
         message += bytes([65 + (i % 26)])
     return message
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='UDP client')
@@ -21,6 +22,7 @@ def parse_arguments():
     parser.add_argument('-p', '--port', help=f"Port that will be used, default: {PORT}", default=PORT)
 
     return parser.parse_args()
+
 
 def main():
     args = parse_arguments()
@@ -64,6 +66,7 @@ def main():
             s.sendto(response, address)
             print('sending dgram #', i, flush=True)
             i+=1
+
 
 if __name__ == "__main__":
     main()
