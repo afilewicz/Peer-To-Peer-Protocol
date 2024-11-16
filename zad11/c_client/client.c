@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
     }
 
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr("172.21.16.2");
     server_addr.sin_port = htons(atoi(argv[1]));
 
     length = sizeof server_addr;
