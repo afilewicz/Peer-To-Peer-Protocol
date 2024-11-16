@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
                 (struct sockaddr*)&client_addr, &length);
 
         if(response_len == -1) {
-            perror("Error while receiving messag-e");
+            perror("Error while receiving message");
             exit(1);
         }
 
