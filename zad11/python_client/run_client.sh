@@ -1,1 +1,1 @@
-docker run --name z16_lab11_python_client --network z16_network z16_lab11_python_client -s 172.21.16.2 -p 8000
+docker run --name z16_lab11_python_client --network host z16_lab11_python_client
