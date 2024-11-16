@@ -11,6 +11,7 @@ int is_response_length_valid(char* buffer, int received_size) {
     memcpy(&len, buffer, 2);
     len = ntohs(len);
     printf("Expected: %d, got: %d\n", len, received_size);
+    fflush(stdout);
     return len == received_size; 
 }
 
@@ -26,12 +27,14 @@ int main(int argc, char* argv[])
         exit(1);
     }
     printf("Socket created\n");
+    fflush(stdout);
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
     if (argc < 2) {
         printf("No port specified, using default 8000\n");
+        fflush(stdout);
         server_addr.sin_port = htons(8000);
     } else
         server_addr.sin_port = htons(atoi(argv[1]));
