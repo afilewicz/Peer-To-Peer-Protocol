@@ -24,12 +24,14 @@ int main(int argc, char *argv[])
 
     if (argc < 2) {
         printf("Usage: %s <port>\n", argv[0]);
+        fflush(stdout);
         exit(1);
     }
 
     sock_d = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock_d == -1) {
         perror("Error while opening datagram socket");
+        fflush(stdout);
         exit(1);
     }
 
@@ -43,20 +45,24 @@ int main(int argc, char *argv[])
         
         fill_msg_buffor(client_msg, size);
         printf("Sending message with size: %i\n", size);
+        fflush(stdout);
         
         if(sendto(sock_d, client_msg, size, 0, 
             (struct sockaddr *) &server_addr, sizeof server_addr) == -1) {
             perror("Error while sending datagram message");
+            fflush(stdout);
             exit(1);
         }
 
         if(recvfrom(sock_d, server_resp, sizeof server_resp, 0, 
             (struct sockaddr*) &server_addr, &length) == -1) {
             perror("Error while receiving server response");
+            fflush(stdout);
             exit(1);
         }
 
         printf("Server's response: %s\n", server_resp);
+        fflush(stdout);
 
     }
     close(sock_d);

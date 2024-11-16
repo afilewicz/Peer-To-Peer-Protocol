@@ -24,6 +24,7 @@ int main(int argc, char* argv[])
     sock_d = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock_d < 0) {
         perror("Error while opening datagram socket");
+        fflush(stdout);
         exit(1);
     }
     printf("Socket created\n");
@@ -43,6 +44,7 @@ int main(int argc, char* argv[])
 
     if(bind(sock_d, (struct sockaddr *)&server_addr, length) == -1) {
         perror("Error while binding datagram socket");
+        fflush(stdout);
         exit(1);
     }
 
@@ -53,6 +55,7 @@ int main(int argc, char* argv[])
 
         if(response_len == -1) {
             perror("Error while receiving message");
+            fflush(stdout);
             exit(1);
         }
 
@@ -66,6 +69,7 @@ int main(int argc, char* argv[])
         if(sendto(sock_d, response, sizeof response, 0, 
                 (struct sockaddr *) &client_addr, sizeof client_addr) == -1) {
             perror("Error while sending datagram message");
+            fflush(stdout);
             exit(1);
         }
     }
