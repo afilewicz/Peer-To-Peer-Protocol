@@ -27,14 +27,22 @@ def send_and_receive(s: socket.socket, size: int, host: str, port: int):
     s.sendto(message, (host, port))
 
     data, _ = s.recvfrom(size)
-    received_message = int.from_bytes(data, byteorder='big')
+    # received_message = int.from_bytes(data, byteorder='big')
+    #
+    # print(f"Received from {host}:{port}: {received_message}, expected: {size}", flush=True)
 
-    print(f"Received from {host}:{port}: {received_message}, expected: {size}", flush=True)
+    received_message = data.decode('utf-8').strip()
+    print(f"Received from {host}:{port}: {received_message}")
 
-    if received_message == size:
-        print("Received size matches sent size.", flush=True)
+    if "valid" in received_message:
+        print("Response indicates the message was valid.")
     else:
-        print(f"Sent size doesn't match received size", flush=True)
+        print("Response indicates an error or mismatch.")
+
+    # if received_message == size:
+    #     print("Received size matches sent size.", flush=True)
+    # else:
+    #     print(f"Sent size doesn't match received size", flush=True)
 
 
 def main():
