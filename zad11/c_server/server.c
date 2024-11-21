@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <string.h>
 
-
+// Check if the response length matches the expected length
 int is_response_length_valid(char* buffer, int received_size) {
     uint16_t len;
     memcpy(&len, buffer, 2);
@@ -21,6 +21,7 @@ int main(int argc, char* argv[])
     struct sockaddr_in server_addr, client_addr;
     char msg_received[66000], response[1024];
 
+    // Create a datagram socket
     sock_d = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock_d < 0) {
         perror("Error while opening datagram socket");
@@ -30,6 +31,7 @@ int main(int argc, char* argv[])
     printf("Socket created\n");
     fflush(stdout);
 
+    // Set the server port and IP address
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
@@ -42,6 +44,7 @@ int main(int argc, char* argv[])
 
     length = sizeof server_addr; 
 
+    // Bind the socket to the server address
     if(bind(sock_d, (struct sockaddr *)&server_addr, length) == -1) {
         perror("Error while binding datagram socket");
         fflush(stdout);
@@ -50,6 +53,8 @@ int main(int argc, char* argv[])
 
     while(1) {
         length = sizeof client_addr;
+
+        // Receive the message from the client
         response_len = recvfrom(sock_d, msg_received, sizeof msg_received, 0, 
                 (struct sockaddr*)&client_addr, &length);
 
@@ -59,6 +64,7 @@ int main(int argc, char* argv[])
             exit(1);
         }
 
+        // Check if the response length matches the expected length
         if (is_response_length_valid(msg_received, response_len))
             strcpy(response, "Response length is valid");
         else {
@@ -66,6 +72,7 @@ int main(int argc, char* argv[])
             exit(1);
         }
 
+        // Send the response to the client
         if(sendto(sock_d, response, sizeof response, 0, 
                 (struct sockaddr *) &client_addr, sizeof client_addr) == -1) {
             perror("Error while sending datagram message");
