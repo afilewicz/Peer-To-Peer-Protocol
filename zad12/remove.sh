@@ -1,0 +1,2 @@
+docker stop z16_lab11_c_server z16_lab11_c_client
+docker rm z16_lab11_c_server z16_lab11_c_client
