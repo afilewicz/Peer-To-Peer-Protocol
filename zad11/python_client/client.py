@@ -22,18 +22,11 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def send_and_receive(s: socket.socket, size: int, host: str, port: int):
-    message = generate_datagram(size)
-    s.sendto(message, (host, port))
-
-    data, _ = s.recvfrom(1024)
-    received_message = data.decode('utf-8').strip()
-    print(f"For length {size} received from {host}:{port}: {received_message}")
-
-
 def main():
+    # Set the server port and IP address
     args = parse_arguments()
 
+    # Change host and port if given by user, else default values: host = 127.0.0.1, port = 8000
     if args.host:
         host = args.host
     if args.port:
@@ -41,14 +34,29 @@ def main():
 
     print(f"Will send to {host}:{port}", flush=True)
 
-    sizes = [3, 10, 25, 50, 100, 200, 500, 1000, 2000, 3000, 4000, 5000, 6000, 7000]
-
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        for size in sizes:
-            send_and_receive(s, size, host, port)
+        for size in range(3, 66000):
+            message = generate_datagram(size)
 
-        for size in range(65500, 66000):
-            send_and_receive(s, size, host, port)
+            try:
+                # Send the message to the server
+                s.sendto(message, (host, port))
+
+            except Exception as e:
+                print(f"For length {size}: Error while sending datagram message")
+                break
+
+            try:
+                # Receive the server's response
+                data, _ = s.recvfrom(1024)
+                received_message = data.decode('utf-8').strip()
+
+                # Print the server's response
+                print(f"For length {size} received from {host}:{port}: {received_message}")
+
+            except Exception as e:
+                print(f"For length {size}: Error while receiving server response")
+                break
 
 
 if __name__ == '__main__':
