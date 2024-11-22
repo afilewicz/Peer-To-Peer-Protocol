@@ -44,6 +44,7 @@ def main():
 
             except Exception as e:
                 print(f"For length {size}: Error while sending datagram message")
+                print(e)
                 break
 
             try:
@@ -56,6 +57,7 @@ def main():
 
             except Exception as e:
                 print(f"For length {size}: Error while receiving server response")
+                print(e)
                 break
 
 
