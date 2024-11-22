@@ -35,7 +35,7 @@ def main():
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.bind((host, port))
 
-        excpected_bit = 0
+        expected_bit = 0
 
         while True:
             try:
@@ -44,12 +44,12 @@ def main():
 
                 received_bit = handle_datagram(data)
 
-                if received_bit == excpected_bit:
+                if received_bit == expected_bit:
                     print(f"Received correct bit: {received_bit}", flush=True)
-                    ack_message = f"ACK {excpected_bit}"
+                    ack_message = f"ACK {expected_bit}"
                     s.sendto(ack_message.encode("utf-8"), address)
                     print(f"Sended {ack_message}", flush=True)
-                    excpected_bit = 1 - excpected_bit
+                    expected_bit = 1 - expected_bit
                 else:
                     print(f"Received incorrect bit: {received_bit}. Waiting for retransmission...", flush=True)
                     return False
