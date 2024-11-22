@@ -1,1 +1,1 @@
-docker run --name z16_lab12_python_server --network z16_network z16_lab12_python_server
+docker run --name z16_lab12_python_server --network z16_network z16_lab12_python_server -s 172.21.16.2 -p 8000
