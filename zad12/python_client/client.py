@@ -47,6 +47,7 @@ def main():
 
             while True:
                 message = generate_datagram(DATAGRAM_SIZE, alternating_bit_protocol)
+                print()
 
                 try:
                     # Send the message to the server
@@ -63,7 +64,6 @@ def main():
 
                         # Change alternating bit protocol (0 -> 1 or 1 -> 0)
                         alternating_bit_protocol = 1 - alternating_bit_protocol
-                        print(alternating_bit_protocol, flush=True)
                         break
                     else:
                         print(f"For datagram {datagram_id} received unexpected ACK, resending message", flush=True)
