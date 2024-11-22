@@ -1,0 +1,1 @@
+docker run --name z16_lab12_python_server --network host z16_lab12_python_server
