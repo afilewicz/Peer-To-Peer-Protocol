@@ -47,6 +47,7 @@ def main():
 
             while True:
                 message = generate_datagram(DATAGRAM_SIZE, alternating_bit_protocol)
+                print()
 
                 try:
                     # Send the message to the server

@@ -5,7 +5,7 @@ import struct
 
 HOST = '127.0.0.1'
 PORT = 8000
-BUFSIZE = 66000
+BUFSIZE = 512
 
 
 def parse_arguments():
@@ -16,19 +16,10 @@ def parse_arguments():
 
     return parser.parse_args()
 
-def send_message(alternating_bit_protocol):
-    ack_message = f"ACK {alternating_bit_protocol}"
-    print(f"Sending ACK: {ack_message}", flush=True)
-    return ack_message
 
-def handle_datagram(datagram, expected_bit):
+def handle_datagram(datagram):
     received_bit = struct.unpack('!B', datagram[:1])[0]
-    if received_bit == expected_bit:
-        print(f"Received correct bit: {received_bit}", flush=True)
-        return True
-    else:
-        print(f"Received incorrect bit: {received_bit}. Waiting for retransmission...", flush=True)
-        return False
+    return received_bit
 
 
 def main():
@@ -48,16 +39,20 @@ def main():
 
         while True:
             try:
-                data_address = s.recvfrom( BUFSIZE )
+                print()
+                data, address = s.recvfrom( BUFSIZE )
 
-                data = data_address[0]
-                address = data_address[1]
+                received_bit = handle_datagram(data)
 
-                if handle_datagram(data, expected_bit):
-                    ack_message = send_message(expected_bit)
+                if received_bit == expected_bit:
+                    print(f"Received correct bit: {received_bit}", flush=True)
+                    ack_message = f"ACK {expected_bit}"
                     s.sendto(ack_message.encode("utf-8"), address)
-
+                    print(f"Sended {ack_message}", flush=True)
                     expected_bit = 1 - expected_bit
+                else:
+                    print(f"Received incorrect bit: {received_bit}. Waiting for retransmission...", flush=True)
+                    return False
 
             except socket.timeout:
                 print("Socket timed out", flush=True)
