@@ -51,7 +51,7 @@ def main():
                 try:
                     # Send the message to the server
                     s.sendto(message, (host, port))
-                    print(f"Sending {datagram_id} with ABP {alternating_bit_protocol} to {host}:{port}", flush=True)
+                    print(f"Sending datagram {datagram_id} with ABP {alternating_bit_protocol} to {host}:{port}", flush=True)
 
                     # Receive the server's response
                     ack, _ = s.recvfrom(1024)
