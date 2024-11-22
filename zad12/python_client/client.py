@@ -39,9 +39,10 @@ def main():
         # Set socket timeout
         s.settimeout(2)
 
+        alternating_bit_protocol = 0
+
         # Send and receive response for 10 messages
         for i in range(10):
-            alternating_bit_protocol = 0
             datagram_id = i + 1
 
             while True:
@@ -50,6 +51,7 @@ def main():
                 try:
                     # Send the message to the server
                     s.sendto(message, (host, port))
+                    print(f"Sending {datagram_id} with ABP {alternating_bit_protocol} to {host}:{port}", flush=True)
 
                     # Receive the server's response
                     ack, _ = s.recvfrom(1024)
