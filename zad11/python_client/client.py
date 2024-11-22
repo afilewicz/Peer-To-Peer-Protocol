@@ -43,8 +43,8 @@ def main():
                 s.sendto(message, (host, port))
 
             except Exception as e:
-                print(f"For length {size}: Error while sending datagram message")
-                print(e)
+                print(f"For length {size}: Error while sending datagram message", flush=True)
+                print(e, flush=True)
                 break
 
             try:
@@ -53,11 +53,11 @@ def main():
                 received_message = data.decode('utf-8').strip()
 
                 # Print the server's response
-                print(f"For length {size} received from {host}:{port}: {received_message}")
+                print(f"For length {size} received from {host}:{port}: {received_message}", flush=True)
 
             except Exception as e:
-                print(f"For length {size}: Error while receiving server response")
-                print(e)
+                print(f"For length {size}: Error while receiving server response", flush=True)
+                print(e, flush=True)
                 break
 
 
