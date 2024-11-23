@@ -41,8 +41,9 @@ def main():
 
         alternating_bit_protocol = 0
 
-        # Send and receive response for 10 messages
-        for i in range(10):
+        # Send and receive response for messages
+        i = 0
+        while True:
             datagram_id = i + 1
 
             while True:
@@ -75,6 +76,7 @@ def main():
                     print(f"For datagram {datagram_id}: Error during communication", flush=True)
                     print(e, flush=True)
                     break
+            i += 1
 
 
 if __name__ == '__main__':

@@ -33,7 +33,7 @@ def main():
     print("Will listen on ", host, ":", port, flush=True)
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.bind((host, port))
+        s.bind((socket.gethostbyname(socket.gethostname()), port))
 
         expected_bit = 0
 

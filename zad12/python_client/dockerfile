@@ -1,4 +1,8 @@
 FROM python:3
+RUN apt-get update && apt-get install -y iproute2
+
 WORKDIR /app
-ADD client.py .
-ENTRYPOINT [ "python", "client.py" ]
+ADD client.py /app
+ADD ../add_loss.sh /app
+RUN chmod +x /app/add_loss.sh
+ENTRYPOINT ["/bin/sh", "-c", "/app/add_loss.sh && python /app/client.py"]
