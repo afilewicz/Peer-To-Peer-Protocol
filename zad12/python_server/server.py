@@ -48,7 +48,7 @@ def main():
                     print(f"Received correct bit: {received_bit}", flush=True)
                     ack_message = f"ACK {expected_bit}"
                     s.sendto(ack_message.encode("utf-8"), address)
-                    print(f"Sended {ack_message}", flush=True)
+                    print(f"Sent {ack_message}", flush=True)
                     expected_bit = 1 - expected_bit
                 else:
                     print(f"Received incorrect bit: {received_bit}. Waiting for retransmission...", flush=True)
