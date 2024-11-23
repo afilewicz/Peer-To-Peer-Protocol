@@ -4,11 +4,21 @@ services:
     container_name: client
     build: ./python_client
     tty: true
+    command: ["-s", "172.21.16.2", "-p", "8000"]
     cap_add:
-    - NET_ADMIN
+      - NET_ADMIN
+    networks:
+      - z16_network
   server:
     container_name: server
     build: ./python_server
     tty: true
+    command: ["-s", "172.21.16.2", "-p", "8000"]
     cap_add:
-    - NET_ADMIN
+      - NET_ADMIN
+    networks:
+      - z16_network
+
+networks:
+  z16_network:
+    external: true
