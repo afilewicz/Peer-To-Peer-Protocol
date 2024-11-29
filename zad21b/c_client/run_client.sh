@@ -1,0 +1,1 @@
+docker run --name z16_lab21_c_client --network z16_network z16_lab21_c_client 172.21.16.2 8888
