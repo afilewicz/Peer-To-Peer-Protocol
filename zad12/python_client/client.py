@@ -51,7 +51,7 @@ def main():
             while True:
                 # Generate message to send
                 message = generate_datagram(datagram_size, alternating_bit_protocol)
-                print()
+                print(flush=True)
 
                 try:
                     # Send the message to the server
@@ -79,6 +79,8 @@ def main():
                     print(f"Now: {datetime.now().strftime("%H:%M:%S")} - For datagram {datagram_id}: Error during communication", flush=True)
                     print(e, flush=True)
                     break
+
+            datagram_id += 1
 
 
 if __name__ == '__main__':

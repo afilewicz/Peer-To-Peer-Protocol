@@ -35,13 +35,13 @@ def main():
     print(f"Now: {datetime.now().strftime("%H:%M:%S")} - Will listen on ", host, ":", port, flush=True)
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-        s.bind((socket.gethostbyname(socket.gethostname()), port))
+        s.bind((host, port))
 
         expected_bit = 0
 
         while True:
             try:
-                print()
+                print(flush=True)
 
                 # Receive message from client
                 data, address = s.recvfrom(bufsize)

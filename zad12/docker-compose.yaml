@@ -13,7 +13,7 @@ services:
     container_name: z16_server
     build: ./python_server
     tty: true
-    command: ["-s", "172.21.16.2", "-p", "8000"]
+    entrypoint: ["python", "/app/server.py", "-s", "172.21.16.2", "-p", "8000"]
     cap_add:
       - NET_ADMIN
     networks:
