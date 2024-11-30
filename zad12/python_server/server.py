@@ -2,17 +2,14 @@ import argparse
 import socket
 import struct
 
-
-HOST = '127.0.0.1'
-PORT = 8000
-BUFSIZE = 512
+from datetime import datetime
 
 
-def parse_arguments():
-    parser = argparse.ArgumentParser(description='UDP client')
+def parse_arguments(default_host: str, default_port: int):
+    parser = argparse.ArgumentParser(description='UDP server with Alternating Bit Protocol')
 
-    parser.add_argument('-s', '--host', help=f"The server's hostname or IP address, default: {HOST}", default=HOST)
-    parser.add_argument('-p', '--port', help=f"Port that will be used, default: {PORT}", default=PORT)
+    parser.add_argument('-s', '--host', help=f"The server's hostname or IP address, default: {default_host}", default=default_host)
+    parser.add_argument('-p', '--port', help=f"Port that will be used, default: {default_port}", default=default_port)
 
     return parser.parse_args()
 
@@ -23,14 +20,19 @@ def handle_datagram(datagram):
 
 
 def main():
-    args = parse_arguments()
+    default_host = '127.0.0.1'
+    default_port = 8000
+    bufsize = 512
 
+    args = parse_arguments(default_host, default_port)
+
+    # Change host and port if given by user, else default values: host = 127.0.0.1, port = 8000
     if args.host:
         host = args.host
     if args.port:
         port = int(args.port)
 
-    print("Will listen on ", host, ":", port, flush=True)
+    print(f"Now: {datetime.now().strftime("%H:%M:%S")} - Will listen on ", host, ":", port, flush=True)
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
         s.bind((socket.gethostbyname(socket.gethostname()), port))
@@ -40,25 +42,33 @@ def main():
         while True:
             try:
                 print()
-                data, address = s.recvfrom( BUFSIZE )
 
+                # Receive message from client
+                data, address = s.recvfrom(bufsize)
+
+                # Get ABP from message
                 received_bit = handle_datagram(data)
 
                 if received_bit == expected_bit:
-                    print(f"Received correct bit: {received_bit}", flush=True)
+                    print(f"Now: {datetime.now().strftime("%H:%M:%S")} - Received correct bit: {received_bit}", flush=True)
+
+                    # Send response to client
                     ack_message = f"ACK {expected_bit}"
                     s.sendto(ack_message.encode("utf-8"), address)
-                    print(f"Sent {ack_message}", flush=True)
+
+                    print(f"Now: {datetime.now().strftime("%H:%M:%S")} - Sent {ack_message}", flush=True)
+
+                    # Change expected bit (0 -> 1 or 1 -> 0)
                     expected_bit = 1 - expected_bit
                 else:
-                    print(f"Received incorrect bit: {received_bit}. Waiting for retransmission...", flush=True)
+                    print(f"Now: {datetime.now().strftime("%H:%M:%S")} - Received incorrect bit: {received_bit}. Waiting for retransmission...", flush=True)
                     return False
 
             except socket.timeout:
-                print("Socket timed out", flush=True)
+                print(f"Now: {datetime.now().strftime("%H:%M:%S")} - Socket timed out", flush=True)
 
             except Exception:
-                print("Error in server communication", flush=True)
+                print(f"Now: {datetime.now().strftime("%H:%M:%S")} - Error in server communication", flush=True)
 
 
 if __name__ == "__main__":
