@@ -1,0 +1,1 @@
+docker run --name z16_lab21_c_client --network host z16_lab21_c_client 172.0.0.0 8888

@@ -1,0 +1,5 @@
+FROM gcc:4.9
+COPY . /Sockets
+WORKDIR /Sockets/
+RUN gcc -std=gnu11 -o server tcp_server.c
+ENTRYPOINT ["./server"]
