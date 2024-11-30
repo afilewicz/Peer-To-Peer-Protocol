@@ -16,9 +16,13 @@ void log_info(struct timeval start, struct timeval end, int pckg_num) {
     long microseconds = end.tv_usec - start.tv_usec;
     double elapsed = seconds + microseconds * 1e-6;
     printf("Package number: %d\n", pckg_num);
+    fflush(stdout);
     printf("Time stamp: %ld.%06ld\n", end.tv_sec, end.tv_usec);
+    fflush(stdout);
     printf("Time difference: %f\n", elapsed);
+    fflush(stdout);
     printf("\n");
+    fflush(stdout);
 }
 
 int main(int argc, char* argv[]) {
@@ -29,12 +33,14 @@ int main(int argc, char* argv[]) {
 
     if (argc != 3) {
         printf("Usage: %s <server> <port>\n", argv[0]);
+        fflush(stdout);
         exit(1);
     }
 
     sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock == -1) {
         perror("Error while opening stream socket");
+        fflush(stdout);
         exit(1);
     }
 
@@ -44,15 +50,17 @@ int main(int argc, char* argv[]) {
 
     if (connect(sock, (struct sockaddr *) &server, sizeof server) == -1) {
         perror("Error while connecting stream socket");
+        fflush(stdout);
         exit(1);
     }
 
     memset(buf, 0, BSIZE);
     gettimeofday(&start, NULL);
 
-    for (int i = 0; i < 10000; i++) {
+    for (int i = 0; i < 200; i++) {
         if (send(sock, buf, sizeof buf, 0) == -1) {
             perror("Error while sending stream message");
+            fflush(stdout);
             exit(1);
         }
 

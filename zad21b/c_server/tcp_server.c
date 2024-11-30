@@ -5,8 +5,7 @@
 #include <unistd.h>
 
 #define BSIZE 1024
-#define DEF_PORT "8888"
-#define bailout(s) {perror(s); exit(1); }
+#define bailout(s) {perror(s); fflush(stdout); exit(1); }
 
 int moreWork(void) {
     return 1;
@@ -18,6 +17,9 @@ int main(int argc, char *argv[]) {
     struct addrinfo hints;
     char buf[BSIZE];
     ssize_t bytes_received;
+
+    char *ip_address = (argc > 1) ? argv[1] : "127.0.0.1";
+    char *port = (argc > 2) ? argv[2] : "8888";
 
     // netdb.h documentation
     // int               ai_flags      Input flags.
@@ -33,7 +35,8 @@ int main(int argc, char *argv[]) {
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
-    if (getaddrinfo("127.0.0.1", DEF_PORT, &hints, &bindto_address) != 0)
+
+    if (getaddrinfo(ip_address, port, &hints, &bindto_address) != 0)
         bailout("Blad pobierania adresu");
 
     sock = socket(bindto_address->ai_family, bindto_address->ai_socktype, bindto_address->ai_protocol);
@@ -42,10 +45,12 @@ int main(int argc, char *argv[]) {
 
     if (bind(sock, bindto_address->ai_addr, bindto_address->ai_addrlen) == -1)
         bailout("Bląd bindowania strumienia gniazda");
+
     freeaddrinfo(bindto_address);
 
     listen(sock, ListenQueueSize);
-    printf("Serwer nasłuchuje na porcie %s...\n", DEF_PORT);
+    printf("Serwer nasłuchuje na porcie %s...\n", port);
+    fflush(stdout);
 
     do {
         msgsock = accept(sock,(struct sockaddr *) 0, (socklen_t *) 0);
@@ -54,16 +59,23 @@ int main(int argc, char *argv[]) {
         } else do {
             memset(buf, 0, sizeof buf);
             bytes_received = recv(msgsock, buf, sizeof(buf), 0);
-            if (bytes_received == -1)
+
+            if (bytes_received == -1) {
                 bailout("Błąd odbierania strumienia wiadomości");
-            if (bytes_received == 0)
+            }
+
+            if (bytes_received == 0) {
                 printf("Zakończenie połączenia z klientem\n");
-            else
+                fflush(stdout);
+            } else {
                 printf("Odebrano %zd bajtów\n", bytes_received);
+                fflush(stdout);
+            }
+
             sleep(1);
         } while (bytes_received != 0);
+
         close(msgsock);
-        fflush( stdout );
     } while( moreWork() );
 
 }
