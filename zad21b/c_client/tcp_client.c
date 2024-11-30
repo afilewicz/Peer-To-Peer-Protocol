@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
     memset(buf, 0, BSIZE);
     gettimeofday(&start, NULL);
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 2500; i++) {
         if (send(sock, buf, sizeof buf, 0) == -1) {
             perror("Error while sending stream message");
             fflush(stdout);

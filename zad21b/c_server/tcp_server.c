@@ -5,7 +5,6 @@
 #include <unistd.h>
 
 #define BSIZE 1024
-#define DEF_PORT "8888"
 #define bailout(s) {perror(s); fflush(stdout); exit(1); }
 
 int moreWork(void) {
@@ -18,6 +17,9 @@ int main(int argc, char *argv[]) {
     struct addrinfo hints;
     char buf[BSIZE];
     ssize_t bytes_received;
+
+    char *ip_address = (argc > 1) ? argv[1] : "127.0.0.1";
+    char *port = (argc > 2) ? argv[2] : "8888";
 
     // netdb.h documentation
     // int               ai_flags      Input flags.
@@ -33,7 +35,8 @@ int main(int argc, char *argv[]) {
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;
-    if (getaddrinfo("127.0.0.1", DEF_PORT, &hints, &bindto_address) != 0)
+
+    if (getaddrinfo(ip_address, port, &hints, &bindto_address) != 0)
         bailout("Blad pobierania adresu");
 
     sock = socket(bindto_address->ai_family, bindto_address->ai_socktype, bindto_address->ai_protocol);
@@ -46,7 +49,7 @@ int main(int argc, char *argv[]) {
     freeaddrinfo(bindto_address);
 
     listen(sock, ListenQueueSize);
-    printf("Serwer nasłuchuje na porcie %s...\n", DEF_PORT);
+    printf("Serwer nasłuchuje na porcie %s...\n", port);
     fflush(stdout);
 
     do {
