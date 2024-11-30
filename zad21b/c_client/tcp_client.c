@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BSIZE 10240
+#define BSIZE 100
 
 void log_info(struct timeval start, struct timeval end, int pckg_num) {
     long seconds = end.tv_sec - start.tv_sec;
@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
     memset(buf, 0, BSIZE);
     gettimeofday(&start, NULL);
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10000; i++) {
         if (send(sock, buf, sizeof buf, 0) == -1) {
             perror("Error while sending stream message");
             exit(1);
