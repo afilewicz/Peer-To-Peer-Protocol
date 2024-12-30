@@ -1,5 +1,5 @@
 FROM gcc:4.9
 COPY . /Sockets
 WORKDIR /Sockets/
-RUN gcc -std=c11 -o client client.c
+RUN gcc -std=gnu11 -o client tcp_client.c
 ENTRYPOINT ["./client"]
