@@ -15,7 +15,6 @@ void print_choices() {
     std::cout << std::endl;
 }
 
-void handle_choice_input() {}
 
 int main() {
     ResourceManager manager;
