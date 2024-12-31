@@ -22,7 +22,12 @@ void ResourceManager::add_resource(const std::string& name, const std::string& p
     file.close();
 }
 
-void ResourceManager::remove_resource(const std::string& name) { resources.erase(name); }
+void ResourceManager::remove_resource(const std::string& name) {
+    if (resources.find(name) == resources.end()) {
+        throw std::invalid_argument("Resource with name " + name + " does not exist.");
+    }
+    resources.erase(name);
+}
 
 const std::vector<std::string> ResourceManager::get_resource_names() const {
     std::vector<std::string> names;

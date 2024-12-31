@@ -86,7 +86,14 @@ int main() {
             std::string name;
             std::cout << "Enter resource name: ";
             std::cin >> name;
-            manager.remove_resource(name);
+            try {
+                manager.remove_resource(name);
+                std::cout << "Resource: " << "'" << name << "'" << " removed." << std::endl;
+                std::cout << std::endl;
+            } catch (const std::invalid_argument& e) {
+                std::cout << e.what() << std::endl;
+                std::cout << std::endl;
+            }
         } else if (choice == 3) {
             if (manager.get_resources().empty()) {
                 std::cout << "No resources to display." << std::endl;
