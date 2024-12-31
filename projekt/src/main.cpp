@@ -15,6 +15,22 @@ void print_choices() {
     std::cout << std::endl;
 }
 
+void print_formatted_resources(const std::map<std::string, Resource>& resources) {
+    std::cout << std::left << std::setw(5) << "" << std::setw(20) << "Resource Name" << std::setw(15) << "Size (bytes)"
+              << std::setw(25) << "Time of Addition" << std::endl;
+    std::cout << std::string(65, '-') << std::endl;
+
+    int counter = 1;
+    for (const auto& resource: resources) {
+        std::time_t time = std::chrono::system_clock::to_time_t(resource.second.time_of_addition);
+
+        std::cout << std::left << std::setw(5) << counter++ << std::setw(20) << resource.first << std::setw(15)
+                  << resource.second.size << std::setw(25) << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S")
+                  << std::endl;
+    }
+    std::cout << std::endl;
+}
+
 
 int main() {
     ResourceManager manager;
@@ -72,18 +88,12 @@ int main() {
             std::cin >> name;
             manager.remove_resource(name);
         } else if (choice == 3) {
-            std::vector<std::string> resource_names = manager.get_resource_names();
-            if (resource_names.empty()) {
-                std::cout << "No resources." << std::endl;
+            if (manager.get_resources().empty()) {
+                std::cout << "No resources to display." << std::endl;
                 std::cout << std::endl;
-                continue;
+            } else {
+                print_formatted_resources(manager.get_resources());
             }
-            std::cout << "Resources:" << std::endl;
-            int i = 1;
-            for (const auto& name: resource_names) {
-                std::cout << "  " << i << ". " << name << std::endl;
-            }
-            std::cout << std::endl;
         } else if (choice == 4) {
             // TODO: Implement broadcasting
             std::cout << "Broadcasting" << std::endl;

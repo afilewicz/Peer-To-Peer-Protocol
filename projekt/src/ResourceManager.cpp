@@ -16,7 +16,10 @@ void ResourceManager::add_resource(const std::string& name, const std::string& p
         throw FileNotFoundException();
     }
     std::vector<u_char> data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    resources[name] = Resource(name, data);
+    Resource resource = Resource(name, data);
+    resource.size = data.size();
+    resources[name] = resource;
+    file.close();
 }
 
 void ResourceManager::remove_resource(const std::string& name) { resources.erase(name); }
