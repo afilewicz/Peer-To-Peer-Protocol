@@ -5,9 +5,10 @@
 
 class Resource {
 public:
-    Resource(std::string name, std::vector<std::byte> data) : name(name), data(data) {};
+    Resource() = default;
+    Resource(std::string name, std::vector<u_char> data) : name(name), data(data) {};
 
 private:
     std::string name;
-    std::vector<std::byte> data;
+    std::vector<u_char> data;
 };
