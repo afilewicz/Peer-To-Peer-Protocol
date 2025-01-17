@@ -5,6 +5,7 @@
 
 #include "ResourceManager.h"
 #include "exceptions/FileNotFoundException.h"
+#include "UDPCommunicator.h"
 
 void print_choices() {
     std::cout << "1. Add resource" << std::endl;
@@ -33,6 +34,8 @@ void print_formatted_resources(const std::map<std::string, Resource>& resources)
 
 
 int main() {
+    int port = 8080;
+    UDP_Communicator udp_communicator(port);
     ResourceManager manager;
     std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
     while (true) {
@@ -102,8 +105,11 @@ int main() {
                 print_formatted_resources(manager.get_resources());
             }
         } else if (choice == 4) {
-            // TODO: Implement broadcasting
-            std::cout << "Broadcasting" << std::endl;
+            try {
+                udp_communicator.start_broadcast_thread();
+            } catch (const std::exception& e) {
+                std::cerr << "Error initializing UDP communication: " << e.what() << std::endl;
+            }
         } else if (choice == 5) {
             break;
         } else {

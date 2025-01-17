@@ -6,4 +6,6 @@ set(CMAKE_CXX_STANDARD 20)
 add_executable(P2P src/main.cpp
         src/ResourceManager.cpp
         src/ResourceManager.h
+        src/UDPCommunicator.cpp
+        src/UDPCommunicator.h
 )
