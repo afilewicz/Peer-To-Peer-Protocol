@@ -13,6 +13,8 @@ void print_choices() {
     std::cout << "3. Display resources" << std::endl;
     std::cout << "4. Broadcast" << std::endl;
     std::cout << "5. Exit program" << std::endl;
+    std::cout << "6. Send" << std::endl;
+    std::cout << "7. Receive" << std::endl;
     std::cout << std::endl;
 }
 
@@ -33,10 +35,16 @@ void print_formatted_resources(const std::map<std::string, Resource>& resources)
 }
 
 
-int main() {
-    int port = 8080;
-    UDP_Communicator udp_communicator(port);
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <port>" << std::endl;
+        return 1;
+    }
+
+    int port = std::stoi(argv[1]);
     ResourceManager manager;
+    UDP_Communicator udp_communicator(port, manager);
+    std::cout << "UDP Communicator initialized on port " << port << std::endl;
     std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
     while (true) {
         print_choices();
@@ -112,6 +120,21 @@ int main() {
             }
         } else if (choice == 5) {
             break;
+        } else if (choice == 6) {
+            std::string resource_name, target_address;
+            std::cout << "Enter resource name: ";
+            std::cin >> resource_name;
+            std::cout << "Enter target IP address: ";
+            std::cin >> target_address;
+
+            udp_communicator.start_transmission_thread(resource_name, target_address);
+        } else if (choice == 7) {
+            try {
+                P2PDataMessage received_message = udp_communicator.receive_from_host();
+                std::cout << "Received data chunk " << received_message.chunk_id << "/" << received_message.total_chunks << std::endl;
+            } catch (const std::exception& e) {
+                std::cerr << "Error receiving data: " << e.what() << std::endl;
+            }
         } else {
             std::cout << "Invalid choice" << std::endl;
             std::cout << std::endl;

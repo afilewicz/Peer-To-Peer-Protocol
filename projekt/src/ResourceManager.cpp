@@ -36,3 +36,15 @@ const std::vector<std::string> ResourceManager::get_resource_names() const {
     }
     return names;
 }
+
+bool ResourceManager::has_resource(const std::string& name) const {
+    return resources.contains(name);
+}
+
+const std::vector<u_char>& ResourceManager::get_resource_data(const std::string& resource_name) const {
+    auto it = resources.find(resource_name);
+    if (it == resources.end()) {
+        throw std::invalid_argument("Resource with name " + resource_name + " does not exist.");
+    }
+    return it->second.data;
+}
