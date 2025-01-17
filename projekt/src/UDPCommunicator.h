@@ -53,6 +53,9 @@ public:
 
     ~UDP_Communicator();
     static uint32_t generate_message_id();
+
+    std::string get_local_ip() const;
+
     void start_broadcast_thread();
     void start_transmission_thread(
         const std::string& resource_name,
@@ -64,6 +67,11 @@ public:
     P2PDataMessage receive_from_host();
 
     void stop_threads();
+
+    void send_request(const std::string &resource_name, const std::string &target_ip, uint16_t target_port);
+
+    void handle_request();
+
 private:
     int sockfd;
     struct sockaddr_in address{};

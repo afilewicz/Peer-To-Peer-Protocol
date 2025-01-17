@@ -43,6 +43,31 @@ uint32_t UDP_Communicator::generate_message_id() {
     return distribution(generator);
 }
 
+std::string UDP_Communicator::get_local_ip() const {
+    char buffer[INET_ADDRSTRLEN];
+    sockaddr_in temp_address = {};
+    socklen_t len = sizeof(temp_address);
+
+    sockaddr_in external_address = {};
+    external_address.sin_family = AF_INET;
+    external_address.sin_port = htons(53);
+    inet_pton(AF_INET, "8.8.8.8", &external_address.sin_addr);
+
+    if (connect(sockfd, reinterpret_cast<sockaddr*>(&external_address), sizeof(external_address)) == -1) {
+        throw std::runtime_error("Failed to connect socket for local IP detection: " + std::string(strerror(errno)));
+    }
+
+    if (getsockname(sockfd, reinterpret_cast<sockaddr*>(&temp_address), &len) == -1) {
+        throw std::runtime_error("Failed to get local IP: " + std::string(strerror(errno)));
+    }
+
+    if (!inet_ntop(AF_INET, &temp_address.sin_addr, buffer, sizeof(buffer))) {
+        throw std::runtime_error("Failed to convert IP to string: " + std::string(strerror(errno)));
+    }
+
+    return std::string(buffer);
+}
+
 // void UDP_Communicator::start_transmission_thread(const std::string& resource_name, const std::string& target_address) {
 //     transmission_running = true;
 //
@@ -83,7 +108,7 @@ void UDP_Communicator::start_transmission_thread(const std::string& resource_nam
             std::memcpy(data_message.data_chunk, resource_data.data() + chunk_start, chunk_size);
 
             try {
-                send_to_host(data_message, target_address, 8081); // Zakładany port
+                send_to_host(data_message, target_address, 8081);
             } catch (const std::exception& e) {
                 std::cerr << "Error sending chunk " << data_message.chunk_id << ": " << e.what() << std::endl;
                 break;
@@ -139,13 +164,11 @@ P2PDataMessage UDP_Communicator::receive_from_host() {
 
     std::string filename = std::to_string(message.header.message_id) + std::string("_received") + ".txt";
 
-    // Otwórz plik w trybie zapisu (dodawanie bloków danych)
     std::ofstream file(filename, std::ios::binary | std::ios::app);
     if (!file.is_open()) {
         throw std::runtime_error("Failed to open file for writing: " + filename);
     }
 
-    // Zapisz odebrane dane do pliku
     file.write(message.data_chunk, sizeof(message.data_chunk));
     file.close();
 
@@ -177,5 +200,74 @@ void UDP_Communicator::stop_threads() {
 
     if (transmission_thread.joinable()) {
         transmission_thread.join();
+    }
+}
+
+void UDP_Communicator::send_request(const std::string& resource_name, const std::string& target_ip, uint16_t target_port) {
+    P2PRequestMessage request_message = {};
+    request_message.header.message_type = 1; // Typ: Request
+    request_message.header.message_id = generate_message_id();
+    std::memcpy(request_message.header.sender_ip, &address.sin_addr, 4);
+    request_message.header.sender_port = ntohs(address.sin_port);
+    std::memset(request_message.header.receiver_ip, 0, 4); // Opcjonalne, jeśli nie znamy odbiorcy
+    request_message.header.receiver_port = target_port;
+
+    std::strncpy(request_message.resource_name, resource_name.c_str(), sizeof(request_message.resource_name) - 1);
+    std::strncpy(request_message.additional_info, "Requesting resource", sizeof(request_message.additional_info) - 1);
+
+    sockaddr_in target_addr = {};
+    target_addr.sin_family = AF_INET;
+    target_addr.sin_port = htons(target_port);
+    if (inet_pton(AF_INET, target_ip.c_str(), &target_addr.sin_addr) <= 0) {
+        throw std::runtime_error("Invalid target address");
+    }
+
+    ssize_t sent_bytes = sendto(
+        sockfd,
+        &request_message,
+        sizeof(request_message),
+        0,
+        reinterpret_cast<sockaddr*>(&target_addr),
+        sizeof(target_addr)
+    );
+
+    if (sent_bytes == -1) {
+        throw std::runtime_error(std::string("Failed to send request: ") + strerror(errno));
+    }
+
+    std::cout << "Request sent to " << target_ip << ":" << target_port << " for resource: " << resource_name << std::endl;
+}
+
+
+void UDP_Communicator::handle_request() {
+    P2PRequestMessage request_message = {};
+    sockaddr_in sender_addr = {};
+    socklen_t sender_len = sizeof(sender_addr);
+
+    ssize_t received_bytes = recvfrom(
+        sockfd,
+        &request_message,
+        sizeof(request_message),
+        0,
+        reinterpret_cast<sockaddr*>(&sender_addr),
+        &sender_len
+    );
+
+    if (received_bytes == -1) {
+        throw std::runtime_error(std::string("Failed to receive request: ") + strerror(errno));
+    }
+
+    std::string requested_resource = request_message.resource_name;
+    std::string sender_ip = inet_ntoa(sender_addr.sin_addr);
+    uint16_t sender_port = ntohs(sender_addr.sin_port);
+
+    std::cout << "Request received for resource: " << requested_resource
+              << " from " << sender_ip << ":" << sender_port << std::endl;
+
+    if (resource_manager.has_resource(requested_resource)) {
+        std::cout << "Resource found. Sending..." << std::endl;
+        start_transmission_thread(requested_resource, sender_ip);
+    } else {
+        std::cout << "Resource not found: " << requested_resource << std::endl;
     }
 }

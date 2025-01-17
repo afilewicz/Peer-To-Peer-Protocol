@@ -16,10 +16,14 @@ void ResourceManager::add_resource(const std::string& name, const std::string& p
         throw FileNotFoundException();
     }
     std::vector<u_char> data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    Resource resource = Resource(name, data);
+    Resource resource = Resource(name, data, local_ip);
     resource.size = data.size();
     resources[name] = resource;
     file.close();
+}
+
+void ResourceManager::set_local_ip(const std::string& ip) {
+    local_ip = ip;
 }
 
 void ResourceManager::remove_resource(const std::string& name) {

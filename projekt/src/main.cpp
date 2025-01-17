@@ -20,20 +20,19 @@ void print_choices() {
 
 void print_formatted_resources(const std::map<std::string, Resource>& resources) {
     std::cout << std::left << std::setw(5) << "" << std::setw(20) << "Resource Name" << std::setw(15) << "Size (bytes)"
-              << std::setw(25) << "Time of Addition" << std::endl;
-    std::cout << std::string(65, '-') << std::endl;
+              << std::setw(25) << "IP Address"<< std::setw(25) << "Time of Addition" << std::endl;
+    std::cout << std::string(90, '-') << std::endl;
 
     int counter = 1;
     for (const auto& resource: resources) {
         std::time_t time = std::chrono::system_clock::to_time_t(resource.second.time_of_addition);
 
         std::cout << std::left << std::setw(5) << counter++ << std::setw(20) << resource.first << std::setw(15)
-                  << resource.second.size << std::setw(25) << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S")
+                  << resource.second.size << std::setw(25) << resource.second.ip_address << std::setw(25) << std::put_time(std::localtime(&time), "%Y-%m-%d %H:%M:%S")
                   << std::endl;
     }
     std::cout << std::endl;
 }
-
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -44,6 +43,8 @@ int main(int argc, char* argv[]) {
     int port = std::stoi(argv[1]);
     ResourceManager manager;
     UDP_Communicator udp_communicator(port, manager);
+    std::string local_ip = udp_communicator.get_local_ip();
+    manager.set_local_ip(local_ip);
     std::cout << "UDP Communicator initialized on port " << port << std::endl;
     std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
     while (true) {
@@ -140,4 +141,14 @@ int main(int argc, char* argv[]) {
             std::cout << std::endl;
         }
     }
+    std::thread request_handler([&udp_communicator]() {
+        while (true) {
+            try {
+                udp_communicator.handle_request();
+            } catch (const std::exception& e) {
+                std::cerr << "Error handling request: " << e.what() << std::endl;
+            }
+        }
+    });
+    request_handler.detach();
 }
