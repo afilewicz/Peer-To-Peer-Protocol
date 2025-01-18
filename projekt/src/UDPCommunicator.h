@@ -57,6 +57,8 @@ public:
     std::string get_local_ip() const;
 
     void start_broadcast_thread();
+    void send_broadcast_message();
+
     void start_transmission_thread(
         const std::string& resource_name,
         const std::string& target_address
@@ -73,8 +75,13 @@ public:
     void handle_request();
 
 private:
+    int port;
+
     int sockfd;
     struct sockaddr_in address{};
+
+    int broadcast_sock;
+    struct sockaddr_in broadcast_address{};
 
     mutable std::atomic<bool> broadcast_running;
     mutable std::atomic<bool> transmission_running;

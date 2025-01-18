@@ -41,12 +41,21 @@ int main(int argc, char* argv[]) {
     }
 
     int port = std::stoi(argv[1]);
+
+    if (port == 8888) {
+        std::cerr << "Invalid port number" << std::endl;
+        return 1;
+    }
+
     ResourceManager manager;
     UDP_Communicator udp_communicator(port, manager);
     std::string local_ip = udp_communicator.get_local_ip();
     manager.set_local_ip(local_ip);
     std::cout << "UDP Communicator initialized on port " << port << std::endl;
     std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
+
+    udp_communicator.start_broadcast_thread();
+
     while (true) {
         print_choices();
         std::cout << "Enter choice number: ";
@@ -115,7 +124,7 @@ int main(int argc, char* argv[]) {
             }
         } else if (choice == 4) {
             try {
-                udp_communicator.start_broadcast_thread();
+                udp_communicator.send_broadcast_message();
             } catch (const std::exception& e) {
                 std::cerr << "Error initializing UDP communication: " << e.what() << std::endl;
             }

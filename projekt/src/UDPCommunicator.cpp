@@ -12,6 +12,8 @@
 UDP_Communicator::UDP_Communicator(int port, ResourceManager& manager)
     : broadcast_running(false), transmission_running(false),
     resource_manager(manager) {
+    this->port = port;
+
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) {
         throw std::runtime_error("Failed to create socket");
@@ -142,6 +144,7 @@ void UDP_Communicator::send_to_host(const P2PDataMessage& message, const std::st
     std::cout << "Data sent to " << target_address << ":" << target_port << std::endl;
 }
 
+
 P2PDataMessage UDP_Communicator::receive_from_host() {
     P2PDataMessage message = {};
     sockaddr_in sender_addr = {};
@@ -178,17 +181,113 @@ P2PDataMessage UDP_Communicator::receive_from_host() {
 }
 
 
-
 void UDP_Communicator::start_broadcast_thread() {
+    if (broadcast_running == true) {
+        std::cerr << "Broadcast thread is already running." << std::endl;
+        return;
+    }
+
     broadcast_running = true;
+
+    broadcast_sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (broadcast_sock < 0) {
+        std::cerr << "Failed to create socket." << strerror(errno) << std::endl;
+        broadcast_running = false;
+        return;
+    }
+
+    memset(&broadcast_address, 0, sizeof(broadcast_address));
+    broadcast_address.sin_family = AF_INET;
+    broadcast_address.sin_addr.s_addr = inet_addr("255.255.255.255");
+    broadcast_address.sin_port = htons(8888);
+
+    // Allow socket bind to multiple ports
+    int opt = 1;
+    if (setsockopt(broadcast_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        std::cerr << "Failed to set socket options." << strerror(errno) << std::endl;
+        close(broadcast_sock);
+        broadcast_running = false;
+        return;
+    }
+
+    if (bind(broadcast_sock, (struct sockaddr*)&broadcast_address, sizeof(broadcast_address)) < 0) {
+        std::cerr << "Failed to bind socket." << strerror(errno) << std::endl;
+        close(broadcast_sock);
+        broadcast_running = false;
+        return;
+    }
+
     broadcast_thread = std::thread([this]() {
+        P2PBroadcastMessage receivedMessage;
+
+        // Receive broadcast messages
         while (broadcast_running) {
-            std::cout << "Broadcasting resource information..." << std::endl;
-            // TODO: rozgłaszanie
-            std::this_thread::sleep_for(std::chrono::seconds(5));
+            ssize_t len = recvfrom(broadcast_sock, &receivedMessage, sizeof(receivedMessage), 0, nullptr, nullptr);
+
+            if (len < 0) {
+                std::cerr << "recvfrom failed." << std::endl;
+                broadcast_running = false;
+                close(broadcast_sock);
+                return;
+            }
+
+            std::cout << "Received broadcast message: " << receivedMessage.broadcast_message << "\n";
         }
+
+        close(broadcast_sock);
+        broadcast_running = false;
     });
 }
+
+
+void UDP_Communicator::send_broadcast_message() {
+    if (broadcast_running == false) {
+        return;
+    }
+
+    // Enable broadcast option
+    int broadcastEnable = 1;
+    if (setsockopt(broadcast_sock, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEnable)) < 0) {
+        perror("setsockopt failed");
+        close(broadcast_sock);
+        return;
+    }
+
+    P2PBroadcastMessage message = {};
+
+    // Set sender IP and port
+    message.header.message_type = 0;  // Type Broadcast
+    message.header.message_id = generate_message_id();
+    std::memcpy(message.header.sender_ip, &broadcast_address.sin_addr, 4);
+    message.header.sender_port = ntohs(broadcast_address.sin_port);
+
+    std::string local_ip = get_local_ip();
+
+    for (const auto& resource_name : resource_manager.get_resource_names()) {
+        snprintf(
+            message.broadcast_message,
+            sizeof(message.broadcast_message),
+            "Host %s broadcasts: %s", local_ip.c_str(), resource_name.c_str()
+        );
+
+        // Send the broadcast message
+        ssize_t sent_bytes = sendto(
+            broadcast_sock,
+            &message,
+            sizeof(message),
+            0,
+            (struct sockaddr*)&broadcast_address,
+    sizeof(broadcast_address)
+        );
+
+        if (sent_bytes < 0) {
+            std::cerr << "Failed to send broadcast message: " << strerror(errno) << std::endl;
+        } else {
+            std::cout << "Broadcast message sent: " << message.broadcast_message << std::endl;
+        }
+    }
+}
+
 
 void UDP_Communicator::stop_threads() {
     broadcast_running = false;
