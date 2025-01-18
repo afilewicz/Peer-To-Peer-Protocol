@@ -81,6 +81,8 @@ private:
     int sockfd;
     struct sockaddr_in address{};
 
+    int broadcast_sock;
+
     mutable std::atomic<bool> broadcast_running;
     mutable std::atomic<bool> transmission_running;
 
