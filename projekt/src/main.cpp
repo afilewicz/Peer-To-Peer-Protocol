@@ -54,6 +54,8 @@ int main(int argc, char* argv[]) {
     std::cout << "UDP Communicator initialized on port " << port << std::endl;
     std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
 
+    udp_communicator.start_broadcast_thread();
+
     while (true) {
         print_choices();
         std::cout << "Enter choice number: ";
@@ -122,7 +124,7 @@ int main(int argc, char* argv[]) {
             }
         } else if (choice == 4) {
             try {
-                udp_communicator.start_broadcast_thread();
+                udp_communicator.send_broadcast_message();
             } catch (const std::exception& e) {
                 std::cerr << "Error initializing UDP communication: " << e.what() << std::endl;
             }
