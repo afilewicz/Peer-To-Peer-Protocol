@@ -180,13 +180,74 @@ P2PDataMessage UDP_Communicator::receive_from_host() {
 
 
 void UDP_Communicator::start_broadcast_thread() {
+    if (broadcast_running == true) {
+        std::cerr << "Broadcast thread is already running." << std::endl;
+        return;
+    }
+
     broadcast_running = true;
+
     broadcast_thread = std::thread([this]() {
+        // Enable the socket for broadcasting
+        int broadcast_enable = 1;
+
+        if (setsockopt(sockfd, SOL_SOCKET, SO_BROADCAST, &broadcast_enable, sizeof(broadcast_enable)) < 0) {
+            std::cerr << "Failed to set socket option SO_BROADCAST." << std::endl;
+            broadcast_running = false;
+            return;
+        }
+
+        struct sockaddr_in broadcast_addr;
+        broadcast_addr.sin_family = AF_INET;
+        broadcast_addr.sin_port = htons(0);
+        broadcast_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+
         while (broadcast_running) {
             std::cout << "Broadcasting resource information..." << std::endl;
-            // TODO: rozgłaszanie
+
+            // Prepare the broadcast message
+            P2PBroadcastMessage broadcast_message{};
+            broadcast_message.header.message_type = 0; // Type Broadcast
+            broadcast_message.header.message_id = generate_message_id();
+            std::memcpy(broadcast_message.header.sender_ip, &address.sin_addr.s_addr, 4);
+            broadcast_message.header.sender_port = htons(address.sin_port);
+
+            std::string resource_list;
+            for (const auto& resource_name : resource_manager.get_resource_names()) {
+                resource_list += resource_name + ",";
+            }
+
+            // Remove last comma from resource_list
+            if (!resource_list.empty()) {
+                resource_list.pop_back();
+            }
+
+            snprintf(
+                broadcast_message.broadcast_message,
+                sizeof(broadcast_message.broadcast_message),
+                "Resources: %s",
+                resource_list.c_str()
+            );
+
+            // Send the broadcast message
+            ssize_t sent_bytes = sendto(
+                sockfd,
+                &broadcast_message,
+                sizeof(broadcast_message),
+                0,
+                reinterpret_cast<sockaddr*>(&broadcast_addr),
+                sizeof(broadcast_addr)
+            );
+
+            if (sent_bytes < 0) {
+                std::cerr << "Failed to send broadcast message: " << strerror(errno) << std::endl;
+            } else {
+                std::cout << "Broadcast message sent: " << broadcast_message.broadcast_message << std::endl;
+            }
+
             std::this_thread::sleep_for(std::chrono::seconds(5));
         }
+        broadcast_running = false;
     });
 }
 
