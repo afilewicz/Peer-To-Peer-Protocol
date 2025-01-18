@@ -57,6 +57,9 @@ public:
     std::string get_local_ip() const;
 
     void start_broadcast_thread();
+    void receive_broadcast_message();
+    void send_broadcast_message();
+
     void start_transmission_thread(
         const std::string& resource_name,
         const std::string& target_address
@@ -66,8 +69,6 @@ public:
 
     P2PDataMessage receive_from_host();
 
-    void listen_for_broadcasts();
-
     void stop_threads();
 
     void send_request(const std::string &resource_name, const std::string &target_ip, uint16_t target_port);
@@ -75,6 +76,8 @@ public:
     void handle_request();
 
 private:
+    int port;
+
     int sockfd;
     struct sockaddr_in address{};
 
