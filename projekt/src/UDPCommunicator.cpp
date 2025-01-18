@@ -178,6 +178,43 @@ P2PDataMessage UDP_Communicator::receive_from_host() {
 }
 
 
+void UDP_Communicator::listen_for_broadcasts() {
+    int broadcast_socket = socket(AF_INET, SOCK_DGRAM, 0);
+    if (broadcast_socket < 0) {
+        throw std::runtime_error("Failed to create socket for listening");
+    }
+
+    // Bind to the broadcast port
+    sockaddr_in listen_addr = {};
+    listen_addr.sin_family = AF_INET;
+    listen_addr.sin_port = htons(0); // Use the same port as the broadcast sender
+    listen_addr.sin_addr.s_addr = htonl(INADDR_ANY); // Listen on all interfaces
+
+    if (bind(broadcast_socket, (struct sockaddr*)&listen_addr, sizeof(listen_addr)) < 0) {
+        throw std::runtime_error("Failed to bind to broadcast port");
+    }
+
+    std::cout << "Listening for broadcasts on port " << listen_addr.sin_port << std::endl;
+
+    while (true) {
+        char buffer[1024] = {0};
+        sockaddr_in sender_addr = {};
+        socklen_t sender_len = sizeof(sender_addr);
+
+        int received = recvfrom(broadcast_socket, buffer, sizeof(buffer) - 1, 0,
+                                (struct sockaddr*)&sender_addr, &sender_len);
+        if (received > 0) {
+            buffer[received] = '\0'; // Null-terminate the string
+            std::cout << "Broadcast received: " << buffer
+                      << " from " << inet_ntoa(sender_addr.sin_addr) << std::endl;
+
+            // Optionally, handle the received message here
+        }
+    }
+
+    close(broadcast_socket);
+}
+
 
 void UDP_Communicator::start_broadcast_thread() {
     if (broadcast_running == true) {
@@ -197,11 +234,6 @@ void UDP_Communicator::start_broadcast_thread() {
             return;
         }
 
-        struct sockaddr_in broadcast_addr;
-        broadcast_addr.sin_family = AF_INET;
-        broadcast_addr.sin_port = htons(0);
-        broadcast_addr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
-
         while (broadcast_running) {
             std::cout << "Broadcasting resource information..." << std::endl;
 
@@ -209,45 +241,46 @@ void UDP_Communicator::start_broadcast_thread() {
             P2PBroadcastMessage broadcast_message{};
             broadcast_message.header.message_type = 0; // Type Broadcast
             broadcast_message.header.message_id = generate_message_id();
-            std::memcpy(broadcast_message.header.sender_ip, &address.sin_addr.s_addr, 4);
-            broadcast_message.header.sender_port = htons(address.sin_port);
 
-            std::string resource_list;
+            // Set sender IP
+            std::string local_ip = get_local_ip();
+            inet_pton(AF_INET, local_ip.c_str(), broadcast_message.header.sender_ip);
+
+            // Set sender port
+            broadcast_message.header.sender_port = ntohs(address.sin_port);
+
+            // Set receiver IP and port (optional for broadcast)
+            // std::memset(broadcast_message.header.receiver_ip, 0, sizeof(broadcast_message.header.receiver_ip));
+            // broadcast_message.header.receiver_port = 0;
+
             for (const auto& resource_name : resource_manager.get_resource_names()) {
-                resource_list += resource_name + ",";
+                snprintf(
+                    broadcast_message.broadcast_message,
+                    sizeof(broadcast_message.broadcast_message),
+                    "Host %s broadcasts: %s", local_ip.c_str(), resource_name.c_str()
+                );
+
+                // Send the broadcast message
+                ssize_t sent_bytes = sendto(
+                    sockfd,
+                    &broadcast_message,
+                    sizeof(broadcast_message),
+                    0,
+                    reinterpret_cast<sockaddr*>(&address),
+                    sizeof(address)
+                );
+
+                if (sent_bytes < 0) {
+                    std::cerr << "Failed to send broadcast message: " << strerror(errno) << std::endl;
+                } else {
+                    std::cout << "Broadcast message sent: " << broadcast_message.broadcast_message << std::endl;
+                }
+
+                std::this_thread::sleep_for(std::chrono::seconds(5));
             }
-
-            // Remove last comma from resource_list
-            if (!resource_list.empty()) {
-                resource_list.pop_back();
-            }
-
-            snprintf(
-                broadcast_message.broadcast_message,
-                sizeof(broadcast_message.broadcast_message),
-                "Resources: %s",
-                resource_list.c_str()
-            );
-
-            // Send the broadcast message
-            ssize_t sent_bytes = sendto(
-                sockfd,
-                &broadcast_message,
-                sizeof(broadcast_message),
-                0,
-                reinterpret_cast<sockaddr*>(&broadcast_addr),
-                sizeof(broadcast_addr)
-            );
-
-            if (sent_bytes < 0) {
-                std::cerr << "Failed to send broadcast message: " << strerror(errno) << std::endl;
-            } else {
-                std::cout << "Broadcast message sent: " << broadcast_message.broadcast_message << std::endl;
-            }
-
-            std::this_thread::sleep_for(std::chrono::seconds(5));
+            broadcast_running = false;
         }
-        broadcast_running = false;
+        std::cout << "Broadcasting ended." << std::endl;
     });
 }
 

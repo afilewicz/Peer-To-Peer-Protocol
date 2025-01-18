@@ -66,6 +66,8 @@ public:
 
     P2PDataMessage receive_from_host();
 
+    void listen_for_broadcasts();
+
     void stop_threads();
 
     void send_request(const std::string &resource_name, const std::string &target_ip, uint16_t target_port);

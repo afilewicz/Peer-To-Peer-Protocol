@@ -47,6 +47,17 @@ int main(int argc, char* argv[]) {
     manager.set_local_ip(local_ip);
     std::cout << "UDP Communicator initialized on port " << port << std::endl;
     std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
+
+    std::thread broadcast_listener([&udp_communicator]() {
+        try {
+            udp_communicator.listen_for_broadcasts();
+        } catch (const std::exception& e) {
+            std::cerr << "Error in broadcast listener: " << e.what() << std::endl;
+        }
+    });
+    broadcast_listener.detach();
+
+
     while (true) {
         print_choices();
         std::cout << "Enter choice number: ";
