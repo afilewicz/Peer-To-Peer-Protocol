@@ -49,6 +49,7 @@ struct P2PDataMessage {
 
 class UDP_Communicator {
 public:
+
     UDP_Communicator(int port, ResourceManager &manager);
 
     ~UDP_Communicator();
@@ -74,11 +75,21 @@ public:
 
     void handle_request();
 
+    void start_data_receiver_thread();
+
+    void start_transmission_thread(const std::string& resource_name,
+                              const std::string& target_address,
+                              uint16_t target_data_port);
+
+
 private:
     int port;
 
     int sockfd;
+    int data_sock;
+
     struct sockaddr_in address{};
+    sockaddr_in data_address;
 
     int broadcast_sock;
     struct sockaddr_in broadcast_address{};
@@ -88,6 +99,10 @@ private:
 
     std::thread broadcast_thread;
     std::thread transmission_thread;
+
+    std::thread data_thread;
+    std::atomic<bool> data_running;
+    void data_receiver_loop();
 
     ResourceManager& resource_manager;
 };

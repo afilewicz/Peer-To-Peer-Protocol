@@ -2,6 +2,7 @@
 #include <iostream>
 #include <limits>
 #include <string>
+#include <iomanip>
 
 #include "ResourceManager.h"
 #include "exceptions/FileNotFoundException.h"
@@ -13,8 +14,8 @@ void print_choices() {
     std::cout << "3. Display resources" << std::endl;
     std::cout << "4. Broadcast" << std::endl;
     std::cout << "5. Exit program" << std::endl;
-    std::cout << "6. Send" << std::endl;
-    std::cout << "7. Receive" << std::endl;
+    // std::cout << "6. Send" << std::endl;
+    std::cout << "6. Send request" << std::endl;
     std::cout << std::endl;
 }
 
@@ -52,9 +53,23 @@ int main(int argc, char* argv[]) {
     std::string local_ip = udp_communicator.get_local_ip();
     manager.set_local_ip(local_ip);
     std::cout << "UDP Communicator initialized on port " << port << std::endl;
+    std::cout << "Local IP: " << local_ip << std::endl;
     std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
 
     udp_communicator.start_broadcast_thread();
+    udp_communicator.start_data_receiver_thread();
+
+    std::thread request_handler([&udp_communicator]() {
+        while (true) {
+            try {
+                udp_communicator.handle_request();
+            } catch (const std::exception& e) {
+                std::cerr << "Error handling request: " << e.what() << std::endl;
+            }
+        }
+    });
+    request_handler.detach();
+
 
     while (true) {
         print_choices();
@@ -130,34 +145,39 @@ int main(int argc, char* argv[]) {
             }
         } else if (choice == 5) {
             break;
+        // } else if (choice == 6) {
+        //     std::string resource_name, target_address;
+        //     std::cout << "Enter resource name: ";
+        //     std::cin >> resource_name;
+        //     std::cout << "Enter target IP address: ";
+        //     std::cin >> target_address;
+        //
+        //     udp_communicator.start_transmission_thread(resource_name, target_address);
+        //     std::cout << "Started sending resource '" << resource_name
+        //               << "' to " << target_address << "\n" << std::endl;
         } else if (choice == 6) {
+            // NOWA OPCJA: SEND REQUEST
             std::string resource_name, target_address;
+            uint16_t target_port;
+
             std::cout << "Enter resource name: ";
             std::cin >> resource_name;
             std::cout << "Enter target IP address: ";
             std::cin >> target_address;
+            std::cout << "Enter target port: ";
+            std::cin >> target_port;
 
-            udp_communicator.start_transmission_thread(resource_name, target_address);
-        } else if (choice == 7) {
+            // Wywołujemy metodę, która wyśle P2PRequestMessage
             try {
-                P2PDataMessage received_message = udp_communicator.receive_from_host();
-                std::cout << "Received data chunk " << received_message.chunk_id << "/" << received_message.total_chunks << std::endl;
+                udp_communicator.send_request(resource_name, target_address, target_port);
             } catch (const std::exception& e) {
-                std::cerr << "Error receiving data: " << e.what() << std::endl;
+                std::cerr << "Error sending request: " << e.what() << std::endl;
             }
-        } else {
-            std::cout << "Invalid choice" << std::endl;
             std::cout << std::endl;
+
+        } else {
+            std::cout << "Invalid choice.\n" << std::endl;
         }
     }
-    std::thread request_handler([&udp_communicator]() {
-        while (true) {
-            try {
-                udp_communicator.handle_request();
-            } catch (const std::exception& e) {
-                std::cerr << "Error handling request: " << e.what() << std::endl;
-            }
-        }
-    });
-    request_handler.detach();
+    return 0;
 }
