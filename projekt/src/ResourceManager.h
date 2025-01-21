@@ -12,8 +12,6 @@ public:
 
     void add_resource(const std::string& name, const std::string& path, bool replace = false);
 
-    void set_local_ip(const std::string &ip);
-
     void remove_resource(const std::string& name);
     const std::vector<std::string> get_resource_names() const;
 
@@ -26,5 +24,4 @@ public:
 
 private:
     std::map<std::string, Resource> resources;
-    std::string local_ip;
 };

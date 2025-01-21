@@ -235,10 +235,6 @@ void UDP_Communicator::save_data(const P2PDataMessage& message) {
 }
 
 
-std::string UDP_Communicator::get_local_ip() const {
-    return "127.0.0.1";
-}
-
 
 void UDP_Communicator::handle_incoming_broadcast() {
     if (broadcast_sock < 0) {
@@ -282,13 +278,12 @@ void UDP_Communicator::send_broadcast_message() {
     std::memcpy(message.header.sender_ip, &broadcast_address.sin_addr, 4);
     message.header.sender_port = ntohs(broadcast_address.sin_port);
 
-    std::string local_ip = get_local_ip();
 
     for (const auto& resource_name : resource_manager.get_resource_names()) {
         snprintf(
             message.broadcast_message,
             sizeof(message.broadcast_message),
-            "Host %s broadcasts: %s", local_ip.c_str(), resource_name.c_str()
+            "Host 127.0.0.1 broadcasts: %s", resource_name.c_str()
         );
 
         ssize_t sent_bytes = sendto(
