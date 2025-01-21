@@ -1,4 +1,6 @@
 zad11/.idea/
 .idea/
-projekt/cmake-build-debug
-projekt/build
+projekt/build/
+cmake-build-debug/
+cmmake-build-release/
+.vscode/
