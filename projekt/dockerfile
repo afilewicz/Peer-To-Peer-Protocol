@@ -1,0 +1,15 @@
+# Dockerfile
+FROM ubuntu:latest
+
+# Instalacja wymaganych pakietów (np. kompilatorów lub bibliotek)
+RUN apt-get update && apt-get install -y g++ make
+
+# Skopiuj kod programu do obrazu
+WORKDIR /app
+COPY . /app
+
+# Skompiluj program, jeśli wymaga kompilacji
+RUN g++ -o P2P main.cpp
+
+# Domyślne polecenie uruchamiane po starcie kontenera
+CMD ["./P2P"]
