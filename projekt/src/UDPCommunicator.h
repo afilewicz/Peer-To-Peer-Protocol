@@ -53,56 +53,60 @@ public:
     UDP_Communicator(int port, ResourceManager &manager);
 
     ~UDP_Communicator();
+
+    void handle_data();
+
     static uint32_t generate_message_id();
 
     std::string get_local_ip() const;
 
-    void start_broadcast_thread();
+    void handle_incoming_broadcast();
+
+
     void send_broadcast_message();
 
-    void start_transmission_thread(
-        const std::string& resource_name,
-        const std::string& target_address
-        );
+    void start_broadcast_thread();
+
+    void stop_threads();
 
     void send_to_host(const P2PDataMessage &message, const std::string &target_address, int target_port);
 
-    // P2PDataMessage receive_from_host();
+    void send_file_sync(const std::string &resource_name, const std::string &target_address, uint16_t target_port);
 
-    void stop_threads();
+
+    // void stop_threads();
 
     void send_request(const std::string &resource_name, const std::string &target_ip, uint16_t target_port);
 
     void handle_request();
 
-    void start_data_receiver_thread();
 
-    void start_transmission_thread(const std::string& resource_name,
-                              const std::string& target_address,
-                              uint16_t target_data_port);
+    // void start_broadcast_thread();
+    // void start_transmission_thread(
+    //     const std::string& resource_name,
+    //     const std::string& target_address
+    //     );
+    //
+    // void start_data_receiver_thread();
+    //
+    // void start_transmission_thread(const std::string& resource_name,
+    //                           const std::string& target_address,
+    //                           uint16_t target_data_port);
 
 
 private:
     int port;
 
     int sockfd;
-    int data_sock;
-
     struct sockaddr_in address{};
+
+    int data_sock;
     sockaddr_in data_address;
 
     int broadcast_sock;
     struct sockaddr_in broadcast_address{};
-
     mutable std::atomic<bool> broadcast_running;
-    mutable std::atomic<bool> transmission_running;
-
     std::thread broadcast_thread;
-    std::thread transmission_thread;
-
-    std::thread data_thread;
-    std::atomic<bool> data_running;
-    void data_receiver_loop();
 
     ResourceManager& resource_manager;
 };

@@ -14,7 +14,6 @@ void print_choices() {
     std::cout << "3. Display resources" << std::endl;
     std::cout << "4. Broadcast" << std::endl;
     std::cout << "5. Exit program" << std::endl;
-    // std::cout << "6. Send" << std::endl;
     std::cout << "6. Send request" << std::endl;
     std::cout << std::endl;
 }
@@ -57,7 +56,6 @@ int main(int argc, char* argv[]) {
     std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
 
     udp_communicator.start_broadcast_thread();
-    udp_communicator.start_data_receiver_thread();
 
     std::thread request_handler([&udp_communicator]() {
         while (true) {
@@ -70,6 +68,17 @@ int main(int argc, char* argv[]) {
     });
     request_handler.detach();
 
+
+    std::thread data_thread([&udp_communicator]() {
+        while(true) {
+            try {
+                udp_communicator.handle_data();
+            } catch(const std::exception& e) {
+                std::cerr << "Data error: " << e.what() << std::endl;
+            }
+        }
+    });
+    data_thread.detach();
 
     while (true) {
         print_choices();
