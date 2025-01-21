@@ -5,50 +5,66 @@
 
 #include <iostream>
 
-ResourceManager::ResourceManager() { resources = std::map<std::string, Resource>(); }
+ResourceManager::ResourceManager() {}
 
-void ResourceManager::add_resource(const std::string& name, const std::string& path, bool replace) {
-    if (resources.find(name) != resources.end() && !replace) {
+void ResourceManager::add_local_resource(const std::string &name, const std::string &path, bool replace)
+{
+    if (local_resources.find(name) != local_resources.end() && !replace)
+    {
         throw std::invalid_argument("Resource with name " + name + " already exists.");
     }
     std::ifstream file(path, std::ios::binary);
-    if (!file.is_open()) {
+    if (!file.is_open())
+    {
         throw FileNotFoundException();
     }
     std::vector<u_char> data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     Resource resource = Resource(name, data, local_ip);
     resource.size = data.size();
-    resources[name] = resource;
+    local_resources[name] = resource;
     file.close();
 }
 
-void ResourceManager::set_local_ip(const std::string& ip) {
+void ResourceManager::set_local_ip(const std::string &ip)
+{
     local_ip = ip;
 }
 
-void ResourceManager::remove_resource(const std::string& name) {
-    if (resources.find(name) == resources.end()) {
+void ResourceManager::remove_resource(const std::string &name)
+{
+    if (local_resources.find(name) == local_resources.end())
+    {
         throw std::invalid_argument("Resource with name " + name + " does not exist.");
     }
-    resources.erase(name);
+    local_resources.erase(name);
 }
 
-const std::vector<std::string> ResourceManager::get_resource_names() const {
+const std::vector<std::string> ResourceManager::get_resource_names() const
+{
     std::vector<std::string> names;
-    for (const auto& resource: resources) {
+    for (const auto &resource : local_resources)
+    {
         names.push_back(resource.first);
     }
     return names;
 }
 
-bool ResourceManager::has_resource(const std::string& name) const {
-    return resources.contains(name);
+bool ResourceManager::has_resource(const std::string &name) const
+{
+    return local_resources.contains(name);
 }
 
-const std::vector<u_char>& ResourceManager::get_resource_data(const std::string& resource_name) const {
-    auto it = resources.find(resource_name);
-    if (it == resources.end()) {
+const std::vector<u_char> &ResourceManager::get_resource_data(const std::string &resource_name) const
+{
+    auto it = local_resources.find(resource_name);
+    if (it == local_resources.end())
+    {
         throw std::invalid_argument("Resource with name " + resource_name + " does not exist.");
     }
     return it->second.data;
+}
+
+void ResourceManager::add_remote_resource(const std::string &ip, const std::vector<std::string> &resources)
+{
+    remote_resources[ip] = resources;
 }
