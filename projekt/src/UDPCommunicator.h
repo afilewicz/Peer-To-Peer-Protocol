@@ -53,6 +53,7 @@ struct P2PResponseMessage
 struct P2PDataMessage
 {
     P2PHeader header;
+    size_t data_length;
     char data[32000];
 };
 
@@ -73,13 +74,15 @@ public:
 
     void send_file_sync(const std::string &resource_name, const std::string &target_address, uint16_t target_port);
 
-    P2PDataMessage receive_data();
+    void dispatch_message();
+
+    P2PDataMessage receive_data(const P2PDataMessage& data_message, const sockaddr_in& sender_addr);
 
     void save_data(const P2PDataMessage &message);
 
     void send_request(const std::string &resource_name, const std::string &target_ip, uint16_t target_port);
 
-    void handle_request();
+    void handle_request(const P2PRequestMessage& request_message, const sockaddr_in& sender_addr);
 
 
 private:
