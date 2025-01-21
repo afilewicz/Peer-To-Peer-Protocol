@@ -133,8 +133,6 @@ int main(int argc, char *argv[])
             std::cout << std::endl;
             // name = "test_2.txt";
             // path = "test.txt";
-            try {
-                manager.add_resource(name, path);
             try
             {
                 manager.add_local_resource(name, path);

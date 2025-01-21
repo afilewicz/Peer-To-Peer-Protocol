@@ -236,31 +236,6 @@ void UDP_Communicator::save_data(const P2PDataMessage& message) {
 }
 
 
-
-void UDP_Communicator::handle_incoming_broadcast() {
-    if (broadcast_sock < 0) {
-        return;
-    }
-    P2PBroadcastMessage receivedMessage;
-    sockaddr_in from_addr;
-    socklen_t addr_len = sizeof(from_addr);
-
-    ssize_t len = recvfrom(broadcast_sock, &receivedMessage, sizeof(receivedMessage),
-                           0, (struct sockaddr*)&from_addr, &addr_len);
-
-    if (len < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return;
-        }
-        throw std::runtime_error("Failed to receive broadcast");
-    }
-
-    if (len>0) {
-        std::cout << "[handle_incoming_broadcast] Received broadcast message: "
-                  << receivedMessage.broadcast_message << std::endl;
-    }
-}
-
 void UDP_Communicator::send_broadcast_message() {
     if (broadcast_running == false) {
         return;

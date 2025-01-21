@@ -15,7 +15,6 @@ public:
     void remove_resource(const std::string& name);
     void set_local_ip(const std::string &ip);
 
-    void remove_resource(const std::string &name);
     const std::vector<std::string> get_resource_names() const;
 
     bool has_resource(const std::string &name) const;
