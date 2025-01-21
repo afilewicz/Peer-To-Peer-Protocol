@@ -26,6 +26,18 @@ void ResourceManager::add_local_resource(const std::string &name, const std::str
 }
 
 
+void ResourceManager::add_received_resource(const std::string &name, const std::vector<u_char> &data, bool replace) {
+    if (local_resources.find(name) != local_resources.end() && !replace)
+    {
+        throw std::invalid_argument("Resource with name " + name + " already exists.");
+    }
+
+    Resource resource = Resource(name, data);
+    resource.size = data.size();
+    local_resources[name] = resource;
+}
+
+
 void ResourceManager::remove_resource(const std::string &name)
 {
     if (local_resources.find(name) == local_resources.end())

@@ -73,28 +73,16 @@ int main(int argc, char *argv[])
 
     udp_communicator.start_broadcast_thread();
 
-    std::thread request_handler([&udp_communicator]()
+    std::thread dispatch_message_handler([&udp_communicator]()
                                 {
         while (true) {
             try {
-                udp_communicator.handle_request();
+                udp_communicator.dispatch_message();
             } catch (const std::exception& e) {
                 std::cerr << "Error handling request: " << e.what() << std::endl;
             }
         } });
-    request_handler.detach();
-
-    std::thread data_thread([&udp_communicator]()
-                            {
-        while(true) {
-            try {
-                P2PDataMessage data = udp_communicator.receive_data();
-                udp_communicator.save_data(data);
-            } catch(const std::exception& e) {
-                std::cerr << "Data error: " << e.what() << std::endl;
-            }
-        } });
-    data_thread.detach();
+    dispatch_message_handler.detach();
 
     while (true)
     {

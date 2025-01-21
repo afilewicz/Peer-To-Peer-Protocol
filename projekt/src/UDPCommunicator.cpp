@@ -75,24 +75,8 @@ void UDP_Communicator::send_request(const std::string &resource_name,
               << " for resource: " << resource_name << std::endl;
 }
 
-void UDP_Communicator::handle_request()
+void UDP_Communicator::handle_request(const P2PRequestMessage& request_message, const sockaddr_in& sender_addr)
 {
-    P2PRequestMessage request_message = {};
-    sockaddr_in sender_addr = {};
-    socklen_t sender_len = sizeof(sender_addr);
-
-    ssize_t received_bytes = recvfrom(
-        sockfd,
-        &request_message,
-        sizeof(request_message),
-        0,
-        reinterpret_cast<sockaddr*>(&sender_addr),
-        &sender_len
-    );
-    if (received_bytes < 0) {
-        throw std::runtime_error("Failed to receive request");
-    }
-
     std::string requested_resource = request_message.resource_name;
     std::string sender_ip = inet_ntoa(sender_addr.sin_addr);
     uint16_t sender_port = ntohs(sender_addr.sin_port);
@@ -167,15 +151,15 @@ void UDP_Communicator::send_file_sync(const std::string &resource_name,
 }
 
 
-P2PDataMessage UDP_Communicator::receive_data() {
-    P2PDataMessage message = {};
+void UDP_Communicator::dispatch_message() {
+    char buffer[sizeof(P2PDataMessage)]; // Allocate enough space for the largest message
     sockaddr_in sender_addr = {};
     socklen_t sender_len = sizeof(sender_addr);
 
     ssize_t received_bytes = recvfrom(
         sockfd,
-        &message,
-        sizeof(message),
+        buffer,
+        sizeof(buffer),
         0,
         reinterpret_cast<sockaddr*>(&sender_addr),
         &sender_len
@@ -183,17 +167,54 @@ P2PDataMessage UDP_Communicator::receive_data() {
 
     if (received_bytes < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return {};
+            // No data available; return without processing
+            return;
         }
         std::cerr << "Failed to receive data: " << strerror(errno) << std::endl;
-        return {};
+        return;
     }
 
+    // Cast the buffer to a P2PHeader to inspect the message type
+    P2PHeader* header = reinterpret_cast<P2PHeader*>(buffer);
+
+    switch (header->message_type) {
+        case static_cast<int>(MessageType::REQUEST): {
+            if (received_bytes >= sizeof(P2PRequestMessage)) {
+                P2PRequestMessage* request_message = reinterpret_cast<P2PRequestMessage*>(buffer);
+                handle_request(*request_message, sender_addr);
+            } else {
+                std::cerr << "Received incomplete P2PRequestMessage." << std::endl;
+            }
+            break;
+        }
+        case static_cast<int>(MessageType::DATA): {
+            if (received_bytes >= sizeof(P2PDataMessage)) {
+                P2PDataMessage* data_message = reinterpret_cast<P2PDataMessage*>(buffer);
+                receive_data(*data_message, sender_addr);
+            } else {
+                std::cerr << "Received incomplete P2PDataMessage." << std::endl;
+            }
+            break;
+        }
+        default:
+            std::cerr << "Unknown message type received: " << static_cast<int>(header->message_type) << std::endl;
+        break;
+    }
+}
+
+
+P2PDataMessage UDP_Communicator::receive_data(const P2PDataMessage& data_message, const sockaddr_in& sender_addr) {
     std::cout << "Data received from "
               << inet_ntoa(sender_addr.sin_addr) << ":" << ntohs(sender_addr.sin_port) << std::endl;
-    std::string name = message.header.message_id;
+    std::string name = data_message.header.message_id;
+
+    std::vector<u_char> data_vector;
+    size_t data_size = sizeof(data_message.data);
+    data_vector.resize(data_size);
+    std::memcpy(data_vector.data(), data_message.data, data_size);
+
     try {
-        resource_manager.add_local_resource(name, name);
+        resource_manager.add_received_resource(name, data_vector);
     }
     catch (const std::invalid_argument &e)
     {
@@ -203,7 +224,7 @@ P2PDataMessage UDP_Communicator::receive_data() {
         std::cin >> overwrite_choice;
         if (overwrite_choice == 'y')
         {
-            resource_manager.add_local_resource(name, name, true);
+            resource_manager.add_received_resource(name, data_vector, true);
             std::cout << "Resource replaced." << std::endl;
         }
         else
@@ -213,7 +234,7 @@ P2PDataMessage UDP_Communicator::receive_data() {
         std::cout << std::endl;
     }
 
-    return message;
+    return data_message;
 }
 
 void UDP_Communicator::save_data(const P2PDataMessage& message) {
