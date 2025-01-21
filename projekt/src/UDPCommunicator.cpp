@@ -135,6 +135,7 @@ void UDP_Communicator::send_file_sync(const std::string &resource_name,
     data_message.header.message_type = static_cast<uint8_t>(MessageType::DATA);
     std::strcpy(data_message.header.message_id, resource_name.c_str());
     size_t to_copy = std::min<size_t>(resource_data.size(), sizeof(data_message.data));
+    data_message.data_length = to_copy;
     std::memcpy(data_message.data, resource_data.data(), to_copy);
 
     try
@@ -209,7 +210,12 @@ P2PDataMessage UDP_Communicator::receive_data(const P2PDataMessage& data_message
     std::string name = data_message.header.message_id;
 
     std::vector<u_char> data_vector;
-    size_t data_size = sizeof(data_message.data);
+    size_t data_size = data_message.data_length;
+
+    if (data_size > sizeof(data_message.data)) {
+        data_size = sizeof(data_message.data);
+    }
+
     data_vector.resize(data_size);
     std::memcpy(data_vector.data(), data_message.data, data_size);
 

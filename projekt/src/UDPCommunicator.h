@@ -53,6 +53,7 @@ struct P2PResponseMessage
 struct P2PDataMessage
 {
     P2PHeader header;
+    size_t data_length;
     char data[32000];
 };
 
