@@ -157,7 +157,6 @@ void UDP_Communicator::send_file_sync(const std::string& resource_name,
                                       const std::string& target_address,
                                       uint16_t target_port)
 {
-    // Sprawdź, czy w ResourceManagerze istnieje zasób
     if (!resource_manager.has_resource(resource_name)) {
         std::cerr << "[send_file_sync] Resource not found: " << resource_name << std::endl;
         return;
@@ -166,39 +165,17 @@ void UDP_Communicator::send_file_sync(const std::string& resource_name,
     // Pobierz dane zasobu (plik)
     const auto& resource_data = resource_manager.get_resource_data(resource_name);
 
-    // Oblicz liczbę chunków (1024 bajty na chunk)
-    size_t total_chunks = (resource_data.size() + 1023) / 1024;
-    std::cout << "[send_file_sync] Sending resource '" << resource_name
-              << "' in " << total_chunks << " chunks to "
-              << target_address << ":" << target_port << std::endl;
+    P2PDataMessage data_message = {};
+    data_message.header.message_type = 3; // Typ: Data
+    data_message.header.message_id = generate_message_id();
+    size_t to_copy = std::min<size_t>(resource_data.size(), sizeof(data_message.data));
+    std::memcpy(data_message.data, resource_data.data(), to_copy);
 
-    for (size_t i = 0; i < total_chunks; ++i) {
-        // Zbuduj strukturę wiadomości
-        P2PDataMessage data_message = {};
-        data_message.header.message_type = 3; // Typ: Data
-        data_message.header.message_id = generate_message_id();
-        data_message.chunk_id = i + 1;
-        data_message.total_chunks = total_chunks;
-
-        // Obliczamy, ile bajtów trafi do chunku
-        size_t chunk_start = i * 1024;
-        size_t chunk_size = std::min<size_t>(1024, resource_data.size() - chunk_start);
-
-        // Kopiujemy chunk_size bajtów do data_chunk
-        std::memcpy(data_message.data_chunk, resource_data.data() + chunk_start, chunk_size);
-
-        // Logujemy i wysyłamy do hosta
-        std::cout << "[send_file_sync] Sending chunk " << data_message.chunk_id
-                  << "/" << data_message.total_chunks << " ("
-                  << chunk_size << " bytes)\n";
-
-        try {
-            send_to_host(data_message, target_address, target_port);
-        } catch (const std::exception& e) {
-            std::cerr << "[send_file_sync] Error sending chunk "
-                      << data_message.chunk_id << ": " << e.what() << std::endl;
-            break; // kończymy pętlę w razie błędu
-        }
+    try {
+        send_to_host(data_message, target_address, target_port);
+    } catch (const std::exception& e) {
+        std::cerr << "[send_file_sync] Error sending chunk " << e.what() << std::endl;
+        return;
     }
 
     std::cout << "[send_file_sync] Finished sending resource '" << resource_name << "'\n";
@@ -236,11 +213,10 @@ void UDP_Communicator::handle_data() {
         std::cerr << "Failed to open file for writing: " << filename << std::endl;
     }
 
-    file.write(message.data_chunk, sizeof(message.data_chunk));
+    file.write(message.data, sizeof(message.data));
     file.close();
 
-    std::cout << "Chunk " << message.chunk_id << "/" << message.total_chunks
-              << " saved to " << filename << std::endl;
+    std::cout << "Saved to " << filename << std::endl;
 }
 
 

@@ -42,9 +42,7 @@ struct P2PResponseMessage {
 
 struct P2PDataMessage {
     P2PHeader header;
-    uint32_t chunk_id;
-    uint32_t total_chunks;
-    char data_chunk[1024];
+    char data[6];
 };
 
 class UDP_Communicator {

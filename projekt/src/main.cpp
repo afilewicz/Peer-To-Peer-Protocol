@@ -20,7 +20,7 @@ void print_choices() {
 
 void print_formatted_resources(const std::map<std::string, Resource>& resources) {
     std::cout << std::left << std::setw(5) << "" << std::setw(20) << "Resource Name" << std::setw(15) << "Size (bytes)"
-              << std::setw(25) << "IP Address"<< std::setw(25) << "Time of Addition" << std::endl;
+              << std::setw(25) << "From"<< std::setw(25) << "Time of Addition" << std::endl;
     std::cout << std::string(90, '-') << std::endl;
 
     int counter = 1;
