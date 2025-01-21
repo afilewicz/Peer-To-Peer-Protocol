@@ -63,7 +63,7 @@ void UDP_Communicator::send_request(const std::string& resource_name,
 {
     P2PRequestMessage request_message = {};
     request_message.header.message_type = 1; // 1 = REQUEST
-    request_message.header.message_id = generate_message_id();
+    std::strcpy(request_message.header.message_id, resource_name.c_str());
     // Tu możesz wypełnić np. sender_ip, sender_port w nagłówku, jeśli chcesz.
 
     std::strncpy(request_message.resource_name,
@@ -167,7 +167,7 @@ void UDP_Communicator::send_file_sync(const std::string& resource_name,
 
     P2PDataMessage data_message = {};
     data_message.header.message_type = 3; // Typ: Data
-    data_message.header.message_id = generate_message_id();
+    std::strcpy(data_message.header.message_id, resource_name.c_str());
     size_t to_copy = std::min<size_t>(resource_data.size(), sizeof(data_message.data));
     std::memcpy(data_message.data, resource_data.data(), to_copy);
 
@@ -206,7 +206,7 @@ void UDP_Communicator::handle_data() {
     std::cout << "Data received from "
               << inet_ntoa(sender_addr.sin_addr) << ":" << ntohs(sender_addr.sin_port) << std::endl;
 
-    std::string filename = std::to_string(message.header.message_id) + "_received.txt";
+    std::string filename = message.header.message_id;
 
     std::ofstream file(filename, std::ios::binary | std::ios::app);
     if (!file.is_open()) {
@@ -217,15 +217,6 @@ void UDP_Communicator::handle_data() {
     file.close();
 
     std::cout << "Saved to " << filename << std::endl;
-}
-
-
-uint32_t UDP_Communicator::generate_message_id() {
-    static std::random_device rd;
-    static std::mt19937 generator(rd());
-    static std::uniform_int_distribution<uint32_t> distribution(1, UINT32_MAX);
-
-    return distribution(generator);
 }
 
 
@@ -276,7 +267,6 @@ void UDP_Communicator::send_broadcast_message() {
 
     // Set sender IP and port
     message.header.message_type = 0;  // Type Broadcast
-    message.header.message_id = generate_message_id();
     std::memcpy(message.header.sender_ip, &broadcast_address.sin_addr, 4);
     message.header.sender_port = ntohs(broadcast_address.sin_port);
 

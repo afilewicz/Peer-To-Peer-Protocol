@@ -15,7 +15,7 @@
 
 struct P2PHeader {
     uint8_t message_type;
-    uint32_t message_id;
+    char message_id[32];
     uint8_t sender_ip[4];
     uint16_t sender_port;
     uint8_t receiver_ip[4];
