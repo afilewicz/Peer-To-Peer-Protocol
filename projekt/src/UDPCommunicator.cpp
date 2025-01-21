@@ -26,27 +26,6 @@ UDP_Communicator::UDP_Communicator(int port, ResourceManager &manager)
         close(sockfd);
         throw std::runtime_error("Failed to bind socket");
     }
-
-    // data_sock = socket(AF_INET, SOCK_DGRAM, 0);
-    // if (data_sock < 0)
-    // {
-    //     close(sockfd);
-    //     throw std::runtime_error("Failed to create data socket");
-    // }
-    //
-    // memset(&data_address, 0, sizeof(data_address));
-    // data_address.sin_family = AF_INET;
-    // data_address.sin_addr.s_addr = INADDR_ANY;
-    //
-    // //czy to jest dobry pomysł żeby dawać ten port +1 do odbierania danych
-    // data_address.sin_port = htons(port + 1);
-    //
-    // if (bind(data_sock, (struct sockaddr *)&data_address, sizeof(data_address)) < 0)
-    // {
-    //     close(sockfd);
-    //     close(data_sock);
-    //     throw std::runtime_error("Failed to bind data socket");
-    // }
 }
 
 
