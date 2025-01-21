@@ -8,6 +8,10 @@
 #include "exceptions/FileNotFoundException.h"
 #include "UDPCommunicator.h"
 
+const uint16_t BROADCAST_PORT = 8888;
+const uint16_t COMMUNICATION_PORT = 5555;
+
+
 void print_choices()
 {
     std::cout << "1. Add resource" << std::endl;
@@ -24,7 +28,7 @@ void print_formatted_resources(const std::map<std::string, Resource> &resources)
 {
     std::cout << std::left << std::setw(5) << "" << std::setw(20) << "Resource Name" << std::setw(15) << "Size (bytes)"
               << std::setw(25) << "Time of Addition" << std::endl;
-    std::cout << std::string(90, '-') << std::endl;
+    std::cout << std::string(65, '-') << std::endl;
 
     int counter = 1;
     for (const auto &resource : resources)
@@ -62,22 +66,9 @@ void print_formated_remote_resources(const std::map<std::string, std::vector<std
 
 int main(int argc, char *argv[])
 {
-    if (argc < 2)
-    {
-        std::cerr << "Usage: " << argv[0] << " <port>" << std::endl;
-        return 1;
-    }
-
-    int port = std::stoi(argv[1]);
-
-    if (port == 8888) {
-        std::cerr << "Invalid port number" << std::endl;
-        return 1;
-    }
-
     ResourceManager manager;
-    UDP_Communicator udp_communicator(port, manager);
-    std::cout << "UDP Communicator initialized on port " << port << std::endl;
+    UDP_Communicator udp_communicator(COMMUNICATION_PORT, manager);
+    std::cout << "UDP Communicator initialized on port " << COMMUNICATION_PORT << std::endl;
     std::cout << "Current working directory: " << std::filesystem::current_path() << std::endl;
 
     udp_communicator.start_broadcast_thread();
@@ -131,8 +122,6 @@ int main(int argc, char *argv[])
             std::cout << "Enter resource path: ";
             std::cin >> path;
             std::cout << std::endl;
-            // name = "test_2.txt";
-            // path = "test.txt";
             try
             {
                 manager.add_local_resource(name, path);
@@ -227,21 +216,14 @@ int main(int argc, char *argv[])
         else if (choice == 7)
         {
             std::string resource_name, target_address;
-            uint16_t target_port;
 
             std::cout << "Enter resource name: ";
             std::cin >> resource_name;
             std::cout << "Enter target IP address: ";
             std::cin >> target_address;
-            std::cout << "Enter target port: ";
-            std::cin >> target_port;
-            // resource_name = "test_2.txt";
-            // target_address = "127.0.0.1";
-            // target_port = 5555;
 
-            // Wywołujemy metodę, która wyśle P2PRequestMessage
             try {
-                udp_communicator.send_request(resource_name, target_address, target_port);
+                udp_communicator.send_request(resource_name, target_address, COMMUNICATION_PORT);
             }
             catch (const std::exception &e)
             {

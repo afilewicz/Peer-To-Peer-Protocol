@@ -27,26 +27,26 @@ UDP_Communicator::UDP_Communicator(int port, ResourceManager &manager)
         throw std::runtime_error("Failed to bind socket");
     }
 
-    data_sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (data_sock < 0)
-    {
-        close(sockfd);
-        throw std::runtime_error("Failed to create data socket");
-    }
-
-    memset(&data_address, 0, sizeof(data_address));
-    data_address.sin_family = AF_INET;
-    data_address.sin_addr.s_addr = INADDR_ANY;
-
-    //czy to jest dobry pomysł żeby dawać ten port +1 do odbierania danych
-    data_address.sin_port = htons(port + 1);
-
-    if (bind(data_sock, (struct sockaddr *)&data_address, sizeof(data_address)) < 0)
-    {
-        close(sockfd);
-        close(data_sock);
-        throw std::runtime_error("Failed to bind data socket");
-    }
+    // data_sock = socket(AF_INET, SOCK_DGRAM, 0);
+    // if (data_sock < 0)
+    // {
+    //     close(sockfd);
+    //     throw std::runtime_error("Failed to create data socket");
+    // }
+    //
+    // memset(&data_address, 0, sizeof(data_address));
+    // data_address.sin_family = AF_INET;
+    // data_address.sin_addr.s_addr = INADDR_ANY;
+    //
+    // //czy to jest dobry pomysł żeby dawać ten port +1 do odbierania danych
+    // data_address.sin_port = htons(port + 1);
+    //
+    // if (bind(data_sock, (struct sockaddr *)&data_address, sizeof(data_address)) < 0)
+    // {
+    //     close(sockfd);
+    //     close(data_sock);
+    //     throw std::runtime_error("Failed to bind data socket");
+    // }
 }
 
 
@@ -54,10 +54,6 @@ UDP_Communicator::~UDP_Communicator() {
     stop_broadcast_thread();
     if (sockfd >= 0) {
         close(sockfd);
-    }
-    if (data_sock >= 0)
-    {
-        close(data_sock);
     }
 }
 
@@ -128,11 +124,11 @@ void UDP_Communicator::handle_request()
     if (resource_manager.has_resource(requested_resource))
     {
         std::cout << "Resource found. Sending..." << std::endl;
-        send_file_sync(requested_resource, sender_ip, sender_port + 1);
+        send_file_sync(requested_resource, sender_ip, sender_port);
     }
     else
     {
-        std::cout << "Resource not found: " << requested_resource << std::endl;
+        std::cout << "Resource not found 2: " << requested_resource << std::endl;
     }
 }
 
@@ -147,7 +143,7 @@ void UDP_Communicator::send_to_host(const P2PDataMessage &message, const std::st
     }
 
     ssize_t sent_bytes = sendto(
-        data_sock,
+        sockfd,
         &message,
         sizeof(message),
         0,
@@ -166,7 +162,7 @@ void UDP_Communicator::send_file_sync(const std::string &resource_name,
                                       uint16_t target_port)
 {
     if (!resource_manager.has_resource(resource_name)) {
-        std::cerr << "Resource not found: " << resource_name << std::endl;
+        std::cerr << "Resource not found 1: " << resource_name << std::endl;
         return;
     }
 
@@ -198,7 +194,7 @@ P2PDataMessage UDP_Communicator::receive_data() {
     socklen_t sender_len = sizeof(sender_addr);
 
     ssize_t received_bytes = recvfrom(
-        data_sock,
+        sockfd,
         &message,
         sizeof(message),
         0,
@@ -216,6 +212,27 @@ P2PDataMessage UDP_Communicator::receive_data() {
 
     std::cout << "Data received from "
               << inet_ntoa(sender_addr.sin_addr) << ":" << ntohs(sender_addr.sin_port) << std::endl;
+    std::string name = message.header.message_id;
+    try {
+        resource_manager.add_local_resource(name, name);
+    }
+    catch (const std::invalid_argument &e)
+    {
+        std::cout << e.what() << std::endl;
+        std::cout << "Would you like to replace the existing resource? (y/n): ";
+        char overwrite_choice;
+        std::cin >> overwrite_choice;
+        if (overwrite_choice == 'y')
+        {
+            resource_manager.add_local_resource(name, name, true);
+            std::cout << "Resource replaced." << std::endl;
+        }
+        else
+        {
+            std::cout << "Resource has not been replaced." << std::endl;
+        }
+        std::cout << std::endl;
+    }
 
     return message;
 }
@@ -269,7 +286,7 @@ void UDP_Communicator::send_broadcast_message() {
     snprintf(
         message.broadcast_message,
         sizeof(message.broadcast_message),
-        "Host {port} broadcasts: %s", resources.c_str());
+        "Host %p broadcasts: %s", message.header.sender_ip, resources.c_str());
 
         ssize_t sent_bytes = sendto(
             broadcast_sock,

@@ -13,7 +13,6 @@ public:
     void add_local_resource(const std::string &name, const std::string &path, bool replace = false);
 
     void remove_resource(const std::string& name);
-    void set_local_ip(const std::string &ip);
 
     const std::vector<std::string> get_resource_names() const;
 

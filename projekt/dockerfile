@@ -1,15 +1,30 @@
-# Dockerfile
+# Użyj oficjalnego obrazu Ubuntu jako bazowego
 FROM ubuntu:latest
 
-# Instalacja wymaganych pakietów (np. kompilatorów lub bibliotek)
-RUN apt-get update && apt-get install -y g++ make
+# Ustaw zmienną środowiskową, aby zapobiec interaktywnym pytaniom w apt
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Skopiuj kod programu do obrazu
+# Zainstaluj wymagane pakiety systemowe
+RUN apt-get update && apt-get install -y \
+    cmake \
+    g++ \
+    make \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Ustaw katalog roboczy w kontenerze
 WORKDIR /app
+
+# Skopiuj pliki źródłowe i konfiguracje do obrazu
 COPY . /app
 
-# Skompiluj program, jeśli wymaga kompilacji
-RUN g++ -o P2P main.cpp
+RUN echo test > /app/test
+
+# Tworzenie katalogu build
+RUN mkdir build
+
+# Przejdź do katalogu build, uruchom CMake i zbuduj program
+RUN cd build && cmake .. && make
 
 # Domyślne polecenie uruchamiane po starcie kontenera
-CMD ["./P2P"]
+CMD ["./build/P2P"]
