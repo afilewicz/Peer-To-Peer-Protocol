@@ -72,7 +72,8 @@ int main(int argc, char* argv[]) {
     std::thread data_thread([&udp_communicator]() {
         while(true) {
             try {
-                udp_communicator.handle_data();
+                P2PDataMessage data = udp_communicator.receive_data();
+                udp_communicator.save_data(data);
             } catch(const std::exception& e) {
                 std::cerr << "Data error: " << e.what() << std::endl;
             }
@@ -98,11 +99,13 @@ int main(int argc, char* argv[]) {
         if (choice == 1) {
             std::string name;
             std::string path;
-            std::cout << "Enter resource name: ";
-            std::cin >> name;
-            std::cout << "Enter resource path: ";
-            std::cin >> path;
-            std::cout << std::endl;
+            // std::cout << "Enter resource name: ";
+            // std::cin >> name;
+            // std::cout << "Enter resource path: ";
+            // std::cin >> path;
+            // std::cout << std::endl;
+            name = "test_2.txt";
+            path = "test.txt";
             try {
                 manager.add_resource(name, path);
                 std::cout << "Resource added." << std::endl;
@@ -155,18 +158,19 @@ int main(int argc, char* argv[]) {
         } else if (choice == 5) {
             break;
         } else if (choice == 6) {
-            // NOWA OPCJA: SEND REQUEST
             std::string resource_name, target_address;
             uint16_t target_port;
 
-            std::cout << "Enter resource name: ";
-            std::cin >> resource_name;
-            std::cout << "Enter target IP address: ";
-            std::cin >> target_address;
-            std::cout << "Enter target port: ";
-            std::cin >> target_port;
+            // std::cout << "Enter resource name: ";
+            // std::cin >> resource_name;
+            // std::cout << "Enter target IP address: ";
+            // std::cin >> target_address;
+            // std::cout << "Enter target port: ";
+            // std::cin >> target_port;
+            resource_name = "test_2.txt";
+            target_address = "127.0.0.1";
+            target_port = 5555;
 
-            // Wywołujemy metodę, która wyśle P2PRequestMessage
             try {
                 udp_communicator.send_request(resource_name, target_address, target_port);
             } catch (const std::exception& e) {

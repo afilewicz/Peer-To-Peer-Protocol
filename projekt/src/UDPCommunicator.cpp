@@ -3,7 +3,13 @@
 #include <thread>
 #include <random>
 #include <fstream>
-
+#include <unistd.h>
+#include <stdexcept>
+#include <cstring>
+#include <iostream>
+#include <vector>
+#include <chrono>
+#include <sys/socket.h>
 
 #include "ResourceManager.h"
 
@@ -36,6 +42,8 @@ UDP_Communicator::UDP_Communicator(int port, ResourceManager& manager)
     memset(&data_address, 0, sizeof(data_address));
     data_address.sin_family = AF_INET;
     data_address.sin_addr.s_addr = INADDR_ANY;
+
+    //czy to jest dobry pomysł żeby dawać ten port +1 do odbierania danych
     data_address.sin_port = htons(port + 1);
 
     if (bind(data_sock, (struct sockaddr*)&data_address, sizeof(data_address)) < 0) {
@@ -47,7 +55,7 @@ UDP_Communicator::UDP_Communicator(int port, ResourceManager& manager)
 
 
 UDP_Communicator::~UDP_Communicator() {
-    stop_threads();
+    stop_broadcast_thread();
     if (sockfd >= 0) {
         close(sockfd);
     }
@@ -62,9 +70,11 @@ void UDP_Communicator::send_request(const std::string& resource_name,
                                     uint16_t target_port)
 {
     P2PRequestMessage request_message = {};
-    request_message.header.message_type = 1; // 1 = REQUEST
-    std::strcpy(request_message.header.message_id, resource_name.c_str());
-    // Tu możesz wypełnić np. sender_ip, sender_port w nagłówku, jeśli chcesz.
+    request_message.header.message_type = static_cast<uint8_t>(MessageType::REQUEST);
+
+    // co powinniśmy ustawiać w message_id w requescie
+    // std::strcpy(request_message.header.message_id, resource_name.c_str());
+
 
     std::strncpy(request_message.resource_name,
                  resource_name.c_str(),
@@ -109,7 +119,7 @@ void UDP_Communicator::handle_request() {
         reinterpret_cast<sockaddr*>(&sender_addr),
         &sender_len
     );
-    if (received_bytes == -1) {
+    if (received_bytes < 0) {
         throw std::runtime_error("Failed to receive request");
     }
 
@@ -158,15 +168,14 @@ void UDP_Communicator::send_file_sync(const std::string& resource_name,
                                       uint16_t target_port)
 {
     if (!resource_manager.has_resource(resource_name)) {
-        std::cerr << "[send_file_sync] Resource not found: " << resource_name << std::endl;
+        std::cerr << "Resource not found: " << resource_name << std::endl;
         return;
     }
 
-    // Pobierz dane zasobu (plik)
     const auto& resource_data = resource_manager.get_resource_data(resource_name);
 
     P2PDataMessage data_message = {};
-    data_message.header.message_type = 3; // Typ: Data
+    data_message.header.message_type = static_cast<uint8_t>(MessageType::DATA);
     std::strcpy(data_message.header.message_id, resource_name.c_str());
     size_t to_copy = std::min<size_t>(resource_data.size(), sizeof(data_message.data));
     std::memcpy(data_message.data, resource_data.data(), to_copy);
@@ -182,7 +191,7 @@ void UDP_Communicator::send_file_sync(const std::string& resource_name,
 }
 
 
-void UDP_Communicator::handle_data() {
+P2PDataMessage UDP_Communicator::receive_data() {
     P2PDataMessage message = {};
     sockaddr_in sender_addr = {};
     socklen_t sender_len = sizeof(sender_addr);
@@ -198,19 +207,25 @@ void UDP_Communicator::handle_data() {
 
     if (received_bytes < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return;
+            return {};
         }
         std::cerr << "Failed to receive data: " << strerror(errno) << std::endl;
+        return {};
     }
 
     std::cout << "Data received from "
               << inet_ntoa(sender_addr.sin_addr) << ":" << ntohs(sender_addr.sin_port) << std::endl;
 
+    return message;
+}
+
+void UDP_Communicator::save_data(const P2PDataMessage& message) {
     std::string filename = message.header.message_id;
 
-    std::ofstream file(filename, std::ios::binary | std::ios::app);
+    std::ofstream file(filename, std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Failed to open file for writing: " << filename << std::endl;
+        return;
     }
 
     file.write(message.data, sizeof(message.data));
@@ -227,7 +242,6 @@ std::string UDP_Communicator::get_local_ip() const {
 
 void UDP_Communicator::handle_incoming_broadcast() {
     if (broadcast_sock < 0) {
-        // brak socketa broadcast
         return;
     }
     P2PBroadcastMessage receivedMessage;
@@ -239,9 +253,9 @@ void UDP_Communicator::handle_incoming_broadcast() {
 
     if (len < 0) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            return; // nic nie przyszło
+            return;
         }
-        // throw std::runtime_error("Failed to receive broadcast");
+        throw std::runtime_error("Failed to receive broadcast");
     }
 
     if (len>0) {
@@ -255,7 +269,6 @@ void UDP_Communicator::send_broadcast_message() {
         return;
     }
 
-    // Enable broadcast option
     int broadcastEnable = 1;
     if (setsockopt(broadcast_sock, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEnable)) < 0) {
         perror("setsockopt failed");
@@ -265,8 +278,7 @@ void UDP_Communicator::send_broadcast_message() {
 
     P2PBroadcastMessage message = {};
 
-    // Set sender IP and port
-    message.header.message_type = 0;  // Type Broadcast
+    message.header.message_type = static_cast<uint8_t>(MessageType::BROADCAST);
     std::memcpy(message.header.sender_ip, &broadcast_address.sin_addr, 4);
     message.header.sender_port = ntohs(broadcast_address.sin_port);
 
@@ -279,7 +291,6 @@ void UDP_Communicator::send_broadcast_message() {
             "Host %s broadcasts: %s", local_ip.c_str(), resource_name.c_str()
         );
 
-        // Send the broadcast message
         ssize_t sent_bytes = sendto(
             broadcast_sock,
             &message,
@@ -318,7 +329,6 @@ void UDP_Communicator::start_broadcast_thread() {
     broadcast_address.sin_addr.s_addr = inet_addr("255.255.255.255");
     broadcast_address.sin_port = htons(8888);
 
-    // Allow socket bind to multiple ports
     int opt = 1;
     if (setsockopt(broadcast_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         std::cerr << "Failed to set socket options." << strerror(errno) << std::endl;
@@ -337,7 +347,6 @@ void UDP_Communicator::start_broadcast_thread() {
     broadcast_thread = std::thread([this]() {
         P2PBroadcastMessage receivedMessage;
 
-        // Receive broadcast messages
         while (broadcast_running) {
             ssize_t len = recvfrom(broadcast_sock, &receivedMessage, sizeof(receivedMessage), 0, nullptr, nullptr);
 
@@ -358,7 +367,7 @@ void UDP_Communicator::start_broadcast_thread() {
 
 
 
-void UDP_Communicator::stop_threads() {
+void UDP_Communicator::stop_broadcast_thread() {
     broadcast_running = false;
     if (broadcast_thread.joinable()) {
         broadcast_thread.join();
