@@ -2,7 +2,14 @@
 
 #include <atomic>
 #include <string>
+#include <vector>
+#include <chrono>
+#include <sys/socket.h>
 #include <arpa/inet.h>
+#include <unistd.h>
+#include <stdexcept>
+#include <cstring>
+#include <iostream>
 #include <bits/std_thread.h>
 #include "ResourceManager.h"
 
@@ -22,39 +29,39 @@ struct P2PHeader {
     uint16_t receiver_port;
 };
 
-struct P2PBroadcastMessage {
+struct P2PBroadcastMessage
+{
     P2PHeader header;
     char broadcast_message[256];
 };
 
-struct P2PRequestMessage {
+struct P2PRequestMessage
+{
     P2PHeader header;
     char resource_name[64];
     char additional_info[128];
 };
 
-struct P2PResponseMessage {
+struct P2PResponseMessage
+{
     P2PHeader header;
     char resource_name[64];
     uint8_t status_code;
     char response_data[512];
 };
 
-struct P2PDataMessage {
+struct P2PDataMessage
+{
     P2PHeader header;
     char data[32000];
 };
 
-class UDP_Communicator {
+class UDP_Communicator
+{
 public:
-
     UDP_Communicator(int port, ResourceManager &manager);
 
     ~UDP_Communicator();
-
-    std::string get_local_ip() const;
-
-    void handle_incoming_broadcast();
 
     void send_broadcast_message();
 
@@ -79,15 +86,19 @@ private:
     int port;
 
     int sockfd;
-    struct sockaddr_in address{};
+    struct sockaddr_in address
+    {
+    };
 
     int data_sock;
     sockaddr_in data_address;
 
     int broadcast_sock;
-    struct sockaddr_in broadcast_address{};
+    struct sockaddr_in broadcast_address
+    {
+    };
     mutable std::atomic<bool> broadcast_running;
     std::thread broadcast_thread;
 
-    ResourceManager& resource_manager;
+    ResourceManager &resource_manager;
 };
