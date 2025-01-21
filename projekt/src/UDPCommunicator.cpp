@@ -63,7 +63,6 @@ void UDP_Communicator::data_receiver_loop() {
         sockaddr_in sender_addr = {};
         socklen_t sender_len = sizeof(sender_addr);
 
-        // recvfrom na data_sock
         ssize_t received_bytes = recvfrom(
             data_sock,
             &message,
@@ -81,11 +80,9 @@ void UDP_Communicator::data_receiver_loop() {
             continue;
         }
 
-        // Tu: zapis chunku do pliku
         std::cout << "Data received from "
                   << inet_ntoa(sender_addr.sin_addr) << ":" << ntohs(sender_addr.sin_port) << std::endl;
 
-        // stwórz plik, np. (tak jak w receive_from_host)
         std::string filename = std::to_string(message.header.message_id) + "_received.txt";
 
         std::ofstream file(filename, std::ios::binary | std::ios::app);
@@ -113,7 +110,7 @@ void UDP_Communicator::start_data_receiver_thread() {
     data_thread = std::thread([this]() {
         data_receiver_loop();
     });
-    data_thread.detach(); // ewentualnie zamiast detach(), trzymasz wątek i join() przy wyjściu
+    data_thread.detach();
 }
 
 
@@ -128,11 +125,11 @@ void UDP_Communicator::start_transmission_thread(const std::string& resource_nam
         }
 
         const auto& resource_data = resource_manager.get_resource_data(resource_name);
-        size_t total_chunks = (resource_data.size() + 1023) / 1024;  // wielkość chunku
+        size_t total_chunks = (resource_data.size() + 1023) / 1024;
 
         for (size_t i = 0; i < total_chunks && transmission_running; ++i) {
             P2PDataMessage data_message = {};
-            data_message.header.message_type = 3; // Data
+            data_message.header.message_type = 3;
             data_message.header.message_id = generate_message_id();
             // ...
             data_message.chunk_id = i + 1;
@@ -143,9 +140,6 @@ void UDP_Communicator::start_transmission_thread(const std::string& resource_nam
             std::memcpy(data_message.data_chunk, resource_data.data() + chunk_start, chunk_size);
 
             try {
-                // UWAGA: zmiana docelowego portu z 8081 na np. (port + 1)
-                // Musisz przekazać do send_to_host() docelowy port, tak aby odbiorca
-                // czekał na tym samym (X+1).
                 send_to_host(data_message, target_address, port + 1);
             } catch (const std::exception& e) {
                 std::cerr << "Error sending chunk " << data_message.chunk_id << ": " << e.what() << std::endl;
@@ -158,7 +152,6 @@ void UDP_Communicator::start_transmission_thread(const std::string& resource_nam
 
 
 void UDP_Communicator::send_to_host(const P2PDataMessage& message, const std::string& target_address, int target_port) {
-    // zamiast sockfd -> data_sock
     sockaddr_in target_addr = {};
     target_addr.sin_family = AF_INET;
     target_addr.sin_port = htons(target_port);
@@ -167,7 +160,7 @@ void UDP_Communicator::send_to_host(const P2PDataMessage& message, const std::st
     }
 
     ssize_t sent_bytes = sendto(
-        data_sock,       // <--- kluczowa zmiana
+        data_sock,
         &message,
         sizeof(message),
         0,
@@ -206,20 +199,9 @@ void UDP_Communicator::handle_request() {
     std::cout << "Request received for resource: " << requested_resource
               << " from " << sender_ip << ":" << sender_port << std::endl;
 
-    // Sprawdzamy, czy mamy zasób
     if (resource_manager.has_resource(requested_resource)) {
         std::cout << "Resource found. Sending..." << std::endl;
-
-        // Wywołujemy start_transmission_thread, by wysłać plik
-        // do IP i portu nadawcy requestu.
-        // Uwaga: w start_transmission_thread zwykle podajesz IP,
-        // a port do wysyłania chunków może być +1 lub inny
-        // (zależnie od Twojej architektury).
         start_transmission_thread(requested_resource, sender_ip, sender_port+1);
-
-        // ewentualnie, jeśli potrzebujesz portu,
-        // musisz dopracować do send_to_host(...) target_port
-        // np. start_transmission_thread(requested_resource, sender_ip, sender_port).
     } else {
         std::cout << "Resource not found: " << requested_resource << std::endl;
     }
@@ -277,117 +259,6 @@ uint32_t UDP_Communicator::generate_message_id() {
 std::string UDP_Communicator::get_local_ip() const {
     return "127.0.0.1";
 }
-
-// void UDP_Communicator::start_transmission_thread(const std::string& resource_name, const std::string& target_address) {
-//     transmission_running = true;
-//
-//     transmission_thread = std::thread([this, resource_name, target_address]() {
-//         while (transmission_running) {
-//             std::cout << "Sending resource: " << resource_name << " to " << target_address << std::endl;
-//             // TODO: Dodaj logikę wysyłania danych UDP
-//             transmission_running = false;
-//         }
-//     });
-// }
-
-// void UDP_Communicator::start_transmission_thread(const std::string& resource_name, const std::string& target_address) {
-//     transmission_running = true;
-//
-//     transmission_thread = std::thread([this, resource_name, target_address]() {
-//         if (!resource_manager.has_resource(resource_name)) {
-//             std::cerr << "Resource not found: " << resource_name << std::endl;
-//             transmission_running = false;
-//             return;
-//         }
-//
-//         const auto& resource_data = resource_manager.get_resource_data(resource_name);
-//         size_t total_chunks = (resource_data.size() + 1023) / 1024;
-//
-//         for (size_t i = 0; i < total_chunks && transmission_running; ++i) {
-//             P2PDataMessage data_message = {};
-//             data_message.header.message_type = 3; // Typ Data
-//             data_message.header.message_id = generate_message_id();
-//             std::memcpy(data_message.header.sender_ip, &address.sin_addr, 4);
-//             data_message.header.sender_port = ntohs(address.sin_port);
-//
-//             data_message.chunk_id = i + 1;
-//             data_message.total_chunks = total_chunks;
-//
-//             size_t chunk_start = i * 1024;
-//             size_t chunk_size = std::min<size_t>(1024, resource_data.size() - chunk_start);
-//             std::memcpy(data_message.data_chunk, resource_data.data() + chunk_start, chunk_size);
-//
-//             try {
-//                 send_to_host(data_message, target_address, 8081);
-//             } catch (const std::exception& e) {
-//                 std::cerr << "Error sending chunk " << data_message.chunk_id << ": " << e.what() << std::endl;
-//                 break;
-//             }
-//         }
-//         transmission_running = false;
-//     });
-// }
-//
-//
-// void UDP_Communicator::send_to_host(const P2PDataMessage& message, const std::string& target_address, int target_port) {
-//     sockaddr_in target_addr = {};
-//     target_addr.sin_family = AF_INET;
-//     target_addr.sin_port = htons(target_port);
-//     if (inet_pton(AF_INET, target_address.c_str(), &target_addr.sin_addr) <= 0) {
-//         throw std::runtime_error("Invalid target address");
-//     }
-//
-//     ssize_t sent_bytes = sendto(
-//         sockfd,
-//         &message,
-//         sizeof(message),
-//         0,
-//         reinterpret_cast<sockaddr*>(&target_addr),
-//         sizeof(target_addr)
-//     );
-//
-//     if (sent_bytes == -1) {
-//         throw std::runtime_error(std::string("Failed to send data: ") + strerror(errno));
-//     }
-//     std::cout << "Data sent to " << target_address << ":" << target_port << std::endl;
-// }
-
-
-P2PDataMessage UDP_Communicator::receive_from_host() {
-    P2PDataMessage message = {};
-    sockaddr_in sender_addr = {};
-    socklen_t sender_len = sizeof(sender_addr);
-
-    ssize_t received_bytes = recvfrom(
-      data_sock,
-        &message,
-        sizeof(message),
-        0,
-        reinterpret_cast<sockaddr*>(&sender_addr),
-        &sender_len
-    );
-
-    if (received_bytes == -1) {
-        throw std::runtime_error(std::string("Failed to receive data: ") + strerror(errno));
-    }
-
-    std::cout << "Data received from " << inet_ntoa(sender_addr.sin_addr) << ":" << ntohs(sender_addr.sin_port) << std::endl;
-
-    std::string filename = std::to_string(message.header.message_id) + std::string("_received") + ".txt";
-
-    std::ofstream file(filename, std::ios::binary | std::ios::app);
-    if (!file.is_open()) {
-        throw std::runtime_error("Failed to open file for writing: " + filename);
-    }
-
-    file.write(message.data_chunk, sizeof(message.data_chunk));
-    file.close();
-
-    std::cout << "Chunk " << message.chunk_id << " saved to " << filename << std::endl;
-
-    return message;
-}
-
 
 
 void UDP_Communicator::start_broadcast_thread() {
@@ -548,37 +419,3 @@ void UDP_Communicator::send_request(const std::string& resource_name,
     std::cout << "Request sent to " << target_ip << ":" << target_port
               << " for resource: " << resource_name << std::endl;
 }
-
-
-
-// void UDP_Communicator::handle_request() {
-//     P2PRequestMessage request_message = {};
-//     sockaddr_in sender_addr = {};
-//     socklen_t sender_len = sizeof(sender_addr);
-//
-//     ssize_t received_bytes = recvfrom(
-//         sockfd,
-//         &request_message,
-//         sizeof(request_message),
-//         0,
-//         reinterpret_cast<sockaddr*>(&sender_addr),
-//         &sender_len
-//     );
-//
-//     if (received_bytes == -1) {
-//         throw std::runtime_error(std::string("Failed to receive request: ") + strerror(errno));
-//     }
-//
-//     std::string requested_resource = request_message.resource_name;
-//     std::string sender_ip = inet_ntoa(sender_addr.sin_addr);
-//     uint16_t sender_port = ntohs(sender_addr.sin_port);
-//
-//     std::cout << "Request received for resource: " << requested_resource
-//               << " from " << sender_ip << ":" << sender_port << std::endl;
-//
-//     if (resource_manager.has_resource(requested_resource)) {
-//         std::cout << "Resource found. Sending..." << std::endl;
-//         start_transmission_thread(requested_resource, sender_ip);
-//     } else {
-//         std::cout << "Resource not found: " << requested_resource << std::endl;
-//     }

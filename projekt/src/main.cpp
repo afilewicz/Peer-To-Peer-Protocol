@@ -145,16 +145,6 @@ int main(int argc, char* argv[]) {
             }
         } else if (choice == 5) {
             break;
-        // } else if (choice == 6) {
-        //     std::string resource_name, target_address;
-        //     std::cout << "Enter resource name: ";
-        //     std::cin >> resource_name;
-        //     std::cout << "Enter target IP address: ";
-        //     std::cin >> target_address;
-        //
-        //     udp_communicator.start_transmission_thread(resource_name, target_address);
-        //     std::cout << "Started sending resource '" << resource_name
-        //               << "' to " << target_address << "\n" << std::endl;
         } else if (choice == 6) {
             // NOWA OPCJA: SEND REQUEST
             std::string resource_name, target_address;

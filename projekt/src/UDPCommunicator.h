@@ -67,7 +67,7 @@ public:
 
     void send_to_host(const P2PDataMessage &message, const std::string &target_address, int target_port);
 
-    P2PDataMessage receive_from_host();
+    // P2PDataMessage receive_from_host();
 
     void stop_threads();
 
