@@ -18,6 +18,7 @@ enum class MessageType {
     REQUEST,
     DATA,
     BROADCAST,
+    RESPONSE,
 };
 
 struct P2PHeader {
@@ -40,14 +41,14 @@ struct P2PRequestMessage
     P2PHeader header;
     char resource_name[64];
     char additional_info[128];
+    uint8_t sequence_bit;
 };
 
 struct P2PResponseMessage
 {
     P2PHeader header;
-    char resource_name[64];
-    uint8_t status_code;
     char response_data[512];
+    uint8_t sequence_bit;
 };
 
 struct P2PDataMessage
@@ -55,6 +56,7 @@ struct P2PDataMessage
     P2PHeader header;
     size_t data_length;
     char data[32000];
+    uint8_t sequence_bit;
 };
 
 class UDP_Communicator
@@ -77,8 +79,6 @@ public:
     void dispatch_message();
 
     P2PDataMessage receive_data(const P2PDataMessage& data_message, const sockaddr_in& sender_addr);
-
-    void save_data(const P2PDataMessage &message);
 
     void send_request(const std::string &resource_name, const std::string &target_ip, uint16_t target_port);
 
