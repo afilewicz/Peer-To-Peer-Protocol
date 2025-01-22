@@ -26,8 +26,6 @@ public:
 
     void add_remote_resource(const std::string &ip, const std::vector<std::string> &resources);
 
-    void remove_remote_resource(const std::string &name);
-
     const std::map<std::string, std::vector<std::string>> &get_remote_resources() const { return remote_resources; }
 
 private:

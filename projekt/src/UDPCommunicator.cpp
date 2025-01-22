@@ -243,21 +243,6 @@ P2PDataMessage UDP_Communicator::receive_data(const P2PDataMessage& data_message
     return data_message;
 }
 
-void UDP_Communicator::save_data(const P2PDataMessage& message) {
-    std::string filename = message.header.message_id;
-
-    std::ofstream file(filename, std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Failed to open file for writing: " << filename << std::endl;
-        return;
-    }
-
-    file.write(message.data, sizeof(message.data));
-    file.close();
-
-    std::cout << "Saved to " << filename << std::endl;
-}
-
 
 void UDP_Communicator::send_broadcast_message() {
     if (broadcast_running == false) {
