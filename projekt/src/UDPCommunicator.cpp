@@ -7,12 +7,9 @@
 #include "ResourceManager.h"
 
 UDP_Communicator::UDP_Communicator(int port, ResourceManager &manager)
-    : resource_manager(manager), port(port)
-{
-
+    : resource_manager(manager), port(port), request_sequence_bit(0), data_sequence_bit(0) {
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0)
-    {
+    if (sockfd < 0) {
         throw std::runtime_error("Failed to create socket");
     }
 
@@ -21,8 +18,7 @@ UDP_Communicator::UDP_Communicator(int port, ResourceManager &manager)
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(port);
 
-    if (bind(sockfd, (struct sockaddr *)&address, sizeof(address)) < 0)
-    {
+    if (bind(sockfd, (struct sockaddr *) &address, sizeof(address)) < 0) {
         close(sockfd);
         throw std::runtime_error("Failed to bind socket");
     }
@@ -40,9 +36,58 @@ void UDP_Communicator::send_request(const std::string &resource_name,
                                     const std::string &target_ip,
                                     uint16_t target_port)
 {
+    send_request_message(resource_name, target_ip, target_port);
+
+    // Wait for acknowledgment
+    char buffer[sizeof(P2PAckMessage)];
+    sockaddr_in sender_addr;
+    socklen_t sender_len = sizeof(sender_addr);
+
+    while (true)
+    {
+        auto start_time = std::chrono::steady_clock::now();
+
+        ssize_t received_bytes = recvfrom(
+            sockfd,
+            buffer,
+            sizeof(buffer),
+            MSG_DONTWAIT,
+            reinterpret_cast<sockaddr *>(&sender_addr),
+            &sender_len);
+
+        if (received_bytes > 0)
+        {
+            P2PAckMessage *ack_message = reinterpret_cast<P2PAckMessage *>(buffer);
+            if (ack_message->header.message_type == static_cast<uint8_t>(MessageType::ACK) &&
+                ack_message->sequence_bit == request_sequence_bit &&
+                ack_message->response_to_type == static_cast<uint8_t>(MessageType::REQUEST)) {
+                std::cout << "Request acknowledgment received for sequence: "
+                          << static_cast<int>(request_sequence_bit) << std::endl;
+                break;
+            }
+        }
+
+        auto elapsed_time = std::chrono::steady_clock::now() - start_time;
+
+        // Timeout
+        if (std::chrono::duration_cast<std::chrono::seconds>(elapsed_time).count() > 2)
+        {
+            std::cerr << "Timeout waiting for acknowledgment. Retrying..." << std::endl;
+            send_request_message(resource_name, target_ip, target_port);
+        }
+    }
+
+    // Toggle sequence bit for next message
+    request_sequence_bit ^= 1;
+}
+
+void UDP_Communicator::send_request_message(const std::string &resource_name,
+                                            const std::string &target_ip,
+                                            uint16_t target_port)
+{
     P2PRequestMessage request_message = {};
     request_message.header.message_type = static_cast<uint8_t>(MessageType::REQUEST);
-
+    request_message.sequence_bit = request_sequence_bit;
 
     std::strncpy(request_message.resource_name,
                  resource_name.c_str(),
@@ -97,6 +142,53 @@ void UDP_Communicator::handle_request(const P2PRequestMessage& request_message, 
 
 void UDP_Communicator::send_to_host(const P2PDataMessage &message, const std::string &target_address, int target_port)
 {
+    send_data_message(message, target_address, target_port);
+
+    // Wait for acknowledgment
+    char buffer[sizeof(P2PAckMessage)];
+    sockaddr_in sender_addr;
+    socklen_t sender_len = sizeof(sender_addr);
+
+    while (true)
+    {
+        auto start_time = std::chrono::steady_clock::now();
+
+        ssize_t received_bytes = recvfrom(
+            sockfd,
+            buffer,
+            sizeof(buffer),
+            MSG_DONTWAIT,
+            reinterpret_cast<sockaddr *>(&sender_addr),
+            &sender_len);
+
+        if (received_bytes > 0)
+        {
+            P2PAckMessage *ack_message = reinterpret_cast<P2PAckMessage *>(buffer);
+            if (ack_message->header.message_type == static_cast<uint8_t>(MessageType::ACK) &&
+                ack_message->sequence_bit == data_sequence_bit &&
+                ack_message->response_to_type == static_cast<uint8_t>(MessageType::DATA)) {
+                std::cout << "Data acknowledgment received for sequence: "
+                          << static_cast<int>(data_sequence_bit) << std::endl;
+                break;
+                }
+        }
+
+        auto elapsed_time = std::chrono::steady_clock::now() - start_time;
+
+        // Timeout
+        if (std::chrono::duration_cast<std::chrono::seconds>(elapsed_time).count() > 2)
+        {
+            std::cerr << "Timeout waiting for acknowledgment. Retrying..." << std::endl;
+            send_data_message(message, target_address, target_port);
+        }
+    }
+
+    // Toggle sequence bit for next message
+    data_sequence_bit ^= 1;
+}
+
+
+void UDP_Communicator::send_data_message(const P2PDataMessage &message, const std::string &target_address, int target_port) {
     sockaddr_in target_addr = {};
     target_addr.sin_family = AF_INET;
     target_addr.sin_port = htons(target_port);
@@ -137,6 +229,7 @@ void UDP_Communicator::send_file_sync(const std::string &resource_name,
     size_t to_copy = std::min<size_t>(resource_data.size(), sizeof(data_message.data));
     data_message.data_length = to_copy;
     std::memcpy(data_message.data, resource_data.data(), to_copy);
+    data_message.sequence_bit = data_sequence_bit;
 
     try
     {
@@ -182,6 +275,7 @@ void UDP_Communicator::dispatch_message() {
         case static_cast<int>(MessageType::REQUEST): {
             if (received_bytes >= sizeof(P2PRequestMessage)) {
                 P2PRequestMessage* request_message = reinterpret_cast<P2PRequestMessage*>(buffer);
+                send_response(request_message->header, request_sequence_bit, static_cast<int>(MessageType::REQUEST));
                 handle_request(*request_message, sender_addr);
             } else {
                 std::cerr << "Received incomplete P2PRequestMessage." << std::endl;
@@ -191,16 +285,78 @@ void UDP_Communicator::dispatch_message() {
         case static_cast<int>(MessageType::DATA): {
             if (received_bytes >= sizeof(P2PDataMessage)) {
                 P2PDataMessage* data_message = reinterpret_cast<P2PDataMessage*>(buffer);
+                send_response(data_message->header, data_sequence_bit, static_cast<int>(MessageType::DATA));
                 receive_data(*data_message, sender_addr);
             } else {
                 std::cerr << "Received incomplete P2PDataMessage." << std::endl;
             }
             break;
         }
+        // case static_cast<int>(MessageType::ACK): {
+        //     if (received_bytes >= sizeof(P2PAckMessage)) {
+        //         P2PAckMessage* ack_message = reinterpret_cast<P2PAckMessage*>(buffer);
+        //         handle_ack_response(*ack_message);
+        //     }
+        // }
         default:
             std::cerr << "Unknown message type received: " << static_cast<int>(header->message_type) << std::endl;
         break;
     }
+}
+
+
+// void UDP_Communicator::handle_ack_response(P2PAckMessage &ack_message) {
+//     uint8_t responded_to_message_type = ack_message.response_to_type;
+//
+//     if (responded_to_message_type == static_cast<uint8_t>(MessageType::DATA)) {
+//         if (ack_message.sequence_bit == data_sequence_bit) {
+//
+//         }
+//     }
+//     else if (responded_to_message_type == static_cast<uint8_t>(MessageType::REQUEST)) {
+//         if (ack_message.sequence_bit == request_sequence_bit) {
+//
+//         }
+//     }
+//     else {
+//         std::cerr << "Received incomplete ack response." << std::endl;
+//         return;
+//     }
+// }
+
+
+void UDP_Communicator::send_response(P2PHeader &message_to_response_header, uint8_t sequence_bit, uint8_t response_to_type) {
+    P2PAckMessage response = {};
+
+    response.header.message_type = static_cast<uint8_t>(MessageType::ACK);
+    std::memcpy(response.header.sender_ip, message_to_response_header.receiver_ip, sizeof(response.header.sender_ip));
+    response.header.sender_port = message_to_response_header.receiver_port;
+    std::memcpy(response.header.receiver_ip, message_to_response_header.sender_ip, sizeof(response.header.receiver_ip));
+    response.header.receiver_port = message_to_response_header.sender_port;
+
+    response.sequence_bit = sequence_bit;
+    response.response_to_type = response_to_type;
+
+    sockaddr_in target_addr = {};
+    target_addr.sin_family = AF_INET;
+    target_addr.sin_port = htons(response.header.receiver_port);
+
+    ssize_t sent_bytes = sendto(
+        sockfd,
+        &response,
+        sizeof(response),
+        0,
+        reinterpret_cast<sockaddr *>(&target_addr),
+        sizeof(target_addr));
+
+    if (sent_bytes == -1) {
+        throw std::runtime_error(std::string("Failed to send data: ") + strerror(errno));
+    }
+
+    std::cout << "Sequence bit " << sequence_bit << " sent to " << static_cast<int>(response.header.sender_ip[0])
+            << "." << static_cast<int>(response.header.sender_ip[1]) << "." << static_cast<int>(response.header.
+                sender_ip[2])
+            << "." << static_cast<int>(response.header.sender_ip[3]) << ":" << response.header.sender_port << std::endl;
 }
 
 
@@ -298,6 +454,7 @@ void UDP_Communicator::send_broadcast_message() {
     }
 }
 
+
 void UDP_Communicator::start_broadcast_thread()
 {
     if (broadcast_running == true)
@@ -385,7 +542,6 @@ void UDP_Communicator::start_broadcast_thread()
         broadcast_running = false;
     });
 }
-
 
 
 void UDP_Communicator::stop_broadcast_thread() {

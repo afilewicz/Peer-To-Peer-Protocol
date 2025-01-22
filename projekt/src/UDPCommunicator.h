@@ -18,7 +18,7 @@ enum class MessageType {
     REQUEST,
     DATA,
     BROADCAST,
-    RESPONSE,
+    ACK,
 };
 
 struct P2PHeader {
@@ -44,11 +44,11 @@ struct P2PRequestMessage
     uint8_t sequence_bit;
 };
 
-struct P2PResponseMessage
+struct P2PAckMessage
 {
     P2PHeader header;
-    char response_data[512];
     uint8_t sequence_bit;
+    uint8_t response_to_type;
 };
 
 struct P2PDataMessage
@@ -74,13 +74,21 @@ public:
 
     void send_to_host(const P2PDataMessage &message, const std::string &target_address, int target_port);
 
+    void send_data_message(const P2PDataMessage &message, const std::string &target_address, int target_port);
+
     void send_file_sync(const std::string &resource_name, const std::string &target_address, uint16_t target_port);
 
     void dispatch_message();
 
+    // void handle_ack_response(P2PAckMessage &ack_message);
+
+    void send_response(P2PHeader &message_to_response_header, uint8_t sequence_bit, uint8_t response_to_type);
+
     P2PDataMessage receive_data(const P2PDataMessage& data_message, const sockaddr_in& sender_addr);
 
     void send_request(const std::string &resource_name, const std::string &target_ip, uint16_t target_port);
+
+    void send_request_message(const std::string &resource_name, const std::string &target_ip, uint16_t target_port);
 
     void handle_request(const P2PRequestMessage& request_message, const sockaddr_in& sender_addr);
 
@@ -104,4 +112,13 @@ private:
     std::thread broadcast_thread;
 
     ResourceManager &resource_manager;
+
+    uint8_t request_sequence_bit;
+    uint8_t data_sequence_bit;
+
+    // std::chrono::steady_clock::time_point request_waiting_for_ack_start_time;
+    // std::chrono::steady_clock::time_point data_waiting_for_ack_start_time;
+    //
+    // P2PRequestMessage &last_send_request_message;
+    // P2PDataMessage &last_send_data_message;
 };
