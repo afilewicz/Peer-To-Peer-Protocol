@@ -219,26 +219,7 @@ P2PDataMessage UDP_Communicator::receive_data(const P2PDataMessage& data_message
     data_vector.resize(data_size);
     std::memcpy(data_vector.data(), data_message.data, data_size);
 
-    try {
-        resource_manager.add_received_resource(name, data_vector);
-    }
-    catch (const std::invalid_argument &e)
-    {
-        std::cout << e.what() << std::endl;
-        std::cout << "Would you like to replace the existing resource? (y/n): ";
-        char overwrite_choice;
-        std::cin >> overwrite_choice;
-        if (overwrite_choice == 'y')
-        {
-            resource_manager.add_received_resource(name, data_vector, true);
-            std::cout << "Resource replaced." << std::endl;
-        }
-        else
-        {
-            std::cout << "Resource has not been replaced." << std::endl;
-        }
-        std::cout << std::endl;
-    }
+    resource_manager.add_received_resource(name, data_vector, true);
 
     return data_message;
 }

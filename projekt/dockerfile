@@ -1,10 +1,7 @@
-# Użyj oficjalnego obrazu Ubuntu jako bazowego
 FROM ubuntu:latest
 
-# Ustaw zmienną środowiskową, aby zapobiec interaktywnym pytaniom w apt
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Zainstaluj wymagane pakiety systemowe
 RUN apt-get update && apt-get install -y \
     cmake \
     g++ \
@@ -12,19 +9,14 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Ustaw katalog roboczy w kontenerze
 WORKDIR /app
 
-# Skopiuj pliki źródłowe i konfiguracje do obrazu
 COPY . /app
 
 RUN echo test > /app/test
 
-# Tworzenie katalogu build
 RUN mkdir build
 
-# Przejdź do katalogu build, uruchom CMake i zbuduj program
 RUN cd build && cmake .. && make
 
-# Domyślne polecenie uruchamiane po starcie kontenera
 CMD ["./build/P2P"]
