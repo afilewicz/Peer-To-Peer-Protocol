@@ -1,1 +1,0 @@
-# 24Z_PSI_laboratorium
